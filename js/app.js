@@ -1668,12 +1668,29 @@ async function runUpdateCheck(showBusyState) {
         progressText = document.getElementById("installProgressText");
       installBtn.disabled = !0, laterBtn.disabled = !0;
       try {
-        const linked = await NexSionUpdater.isUpdateFolderLinked();
+        // Chrome won't let an extension write into its own "Load unpacked" folder
+        // without an explicit, user-picked folder handle — that's a hard browser
+        // security rule with no bypass. Rather than stopping here and sending the
+        // person off to click a separate "Link Update Folder" button first, we
+        // fold that one-time picker into this exact click, so "Install" always
+        // finishes the whole job by itself. After this first time, the link is
+        // saved for good — every update after this one (clicked or fully silent
+        // via Auto-Update) needs zero extra steps.
+        let linked = await NexSionUpdater.isUpdateFolderLinked();
         if (!linked) {
           progressText.textContent =
-            "Link your update folder first (above), then try again.";
-          installBtn.disabled = !1, laterBtn.disabled = !1;
-          return
+            "One-time setup — pick the folder you used for \"Load unpacked\"…";
+          try {
+            await NexSionUpdater.linkUpdateFolder();
+            await refreshUpdatesPanel();
+            toast("Update folder linked — from now on, updates install with no extra steps");
+          } catch (e) {
+            progressText.textContent = "AbortError" === e.name ?
+              "Setup cancelled — click Install again when you're ready." :
+              e.message || "Couldn't link the update folder — click Install to try again.";
+            installBtn.disabled = !1, laterBtn.disabled = !1;
+            return;
+          }
         }
         await NexSionUpdater.installUpdate(result.zipUrl, stage => {
           progressText.textContent = stage, showUpdateProgressToast(stage)

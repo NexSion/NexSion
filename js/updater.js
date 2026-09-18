@@ -115,6 +115,25 @@ async function getVerifiedDirHandle() {
   return requested === "granted" ? handle : null;
 }
 
+/**
+ * Background-safe permission check — NEVER calls requestPermission(), since that
+ * needs a user gesture and would silently fail/throw from a service-worker alarm
+ * with no window attached. Used to decide whether a fully-silent auto-update is
+ * possible right now; if this returns false we fall back to a notification
+ * instead of attempting (and failing) a silent install.
+ */
+async function hasSilentWritePermission() {
+  const handle = await loadDirHandle();
+  if (!handle) return false;
+  try {
+    return (await handle.queryPermission({
+      mode: "readwrite"
+    })) === "granted";
+  } catch {
+    return false;
+  }
+}
+
 async function fetchReleaseNotes() {
   const res = await fetch(RELEASE_NOTES_URL + "?t=" + Date.now(), {
     cache: "no-store"
@@ -288,21 +307,23 @@ async function installUpdate(zipUrl, onProgress) {
   await chrome.storage.local.set({
     nexsion_pending_changelog: true
   });
-  const [tab] = await chrome.tabs.query({
-    active: true,
-    currentWindow: true
-  });
+  // Hand off to background.js to find every open NexSion tab (not just "whichever
+  // tab happens to be active right now" — that was wrong when an install was
+  // triggered from a background/auto-update context, or from a window that
+  // wasn't the one showing NexSion) and reload the extension. This works the
+  // same way whether installUpdate() was called from a foreground click or
+  // from the background service worker's own silent auto-update path, since
+  // a service worker can message its own onMessage listeners.
   await chrome.runtime.sendMessage({
-    type: "prepare-post-update-swap",
-    oldTabId: tab?.id ?? null
-  });
-  chrome.runtime.reload();
+    type: "nexsion-finish-update"
+  }).catch(() => {});
 }
 
 self.NexSionUpdater = {
   isUpdateFolderLinked,
   linkUpdateFolder,
   getVerifiedDirHandle,
+  hasSilentWritePermission,
   clearDirHandle,
   fetchReleaseNotes,
   checkForUpdate,

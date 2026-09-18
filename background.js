@@ -71,7 +71,193 @@ chrome.contextMenus.onClicked.addListener(async (e, t) => {
     favicon: t?.favIconUrl || ""
   }), notify("Saved to NexSion", `${o} → ${a.name}`)) : notify("Couldn't save",
     "That board no longer exists — reopen the menu to refresh the list.")
-}), importScripts("js/storage.js");
+}), importScripts("js/storage.js", "js/updater.js");
+
+/* ---------------- Background auto-update ----------------
+ * Runs independently of whether any NexSion tab is open, so every user
+ * eventually finds out about a new release — via a system notification if
+ * nothing else, or via a fully silent install if they've turned Auto-Update
+ * on and already linked (and granted write permission to) their update
+ * folder. Progress is broadcast as runtime messages so any open NexSion
+ * page can show a corner toast; nothing breaks if no page is listening.
+ * ----------------------------------------------------------------------- */
+const UPDATE_CHECK_ALARM = "nexsion-update-check";
+const UPDATE_NOTIFICATION_ID = "nexsion-update-available";
+const UPDATE_CHECK_PERIOD_MINUTES = 180; // every 3 hours
+
+function scheduleUpdateChecks() {
+  chrome.alarms.create(UPDATE_CHECK_ALARM, {
+    periodInMinutes: UPDATE_CHECK_PERIOD_MINUTES,
+    delayInMinutes: 1
+  });
+}
+
+function broadcast(message) {
+  chrome.runtime.sendMessage(message).catch(() => {});
+}
+
+async function runBackgroundUpdateCheck() {
+  let result;
+  try {
+    result = await NexSionUpdater.checkForUpdate();
+  } catch (e) {
+    console.warn("[NexSion] Background update check failed:", e);
+    return;
+  }
+
+  await chrome.storage.local.set({
+    nexsion_update_state: {
+      current: result.current,
+      latest: result.latest,
+      available: result.available,
+      zipUrl: result.zipUrl,
+      notes: result.notes,
+      checkedAt: Date.now()
+    }
+  });
+  broadcast({
+    type: "nexsion-update-state-changed",
+    state: result
+  });
+
+  if (!result.available) return;
+
+  const {
+    nexsion_last_notified_version: lastNotified
+  } = await chrome.storage.local.get("nexsion_last_notified_version");
+  if (lastNotified === result.latest) return; // already handled this version once
+
+  let settings = {};
+  try {
+    settings = await Store.getSettings();
+  } catch {}
+
+  const canInstallSilently = settings.autoUpdate && await NexSionUpdater.hasSilentWritePermission();
+
+  if (canInstallSilently) {
+    await attemptSilentAutoUpdate(result);
+  } else {
+    notifyUpdateAvailable(result);
+  }
+
+  await chrome.storage.local.set({
+    nexsion_last_notified_version: result.latest
+  });
+}
+
+function notifyUpdateAvailable(result) {
+  chrome.notifications.create(UPDATE_NOTIFICATION_ID, {
+    type: "basic",
+    iconUrl: "icons/icon128.png",
+    title: "NexSion update available",
+    message: `v${result.latest} is ready — click to view what's new and install in one click.`,
+    buttons: [{
+      title: "View & Install"
+    }],
+    priority: 2
+  });
+}
+
+async function attemptSilentAutoUpdate(result) {
+  broadcast({
+    type: "nexsion-update-progress",
+    stage: "Downloading update…"
+  });
+  try {
+    await NexSionUpdater.installUpdate(result.zipUrl, stage => {
+      broadcast({
+        type: "nexsion-update-progress",
+        stage
+      });
+    });
+    // installUpdate() hands off to finishUpdateAndReload() below, which calls
+    // chrome.runtime.reload() — this service worker instance ends there.
+  } catch (e) {
+    console.warn("[NexSion] Silent auto-update failed:", e);
+    broadcast({
+      type: "nexsion-update-progress",
+      stage: null
+    });
+    chrome.notifications.create("nexsion-auto-update-failed", {
+      type: "basic",
+      iconUrl: "icons/icon128.png",
+      title: "NexSion couldn't auto-update",
+      message: `Couldn't install v${result.latest} automatically (${e.message||"unknown error"}). Click to install it yourself — one click, no re-download.`,
+      priority: 2
+    });
+    // Still surface the normal "view & install" path so the user has a 1-click fallback.
+    notifyUpdateAvailable(result);
+  }
+}
+
+/** Opens (or focuses) a NexSion tab and tells it to jump straight to Settings → Updates. */
+async function openUpdatesTab() {
+  const extNewtabUrl = chrome.runtime.getURL("newtab.html");
+  try {
+    const tabs = await chrome.tabs.query({});
+    const existing = tabs.find(t => t.url === "chrome://newtab/" || t.url && t.url.startsWith(
+      extNewtabUrl));
+    if (existing) {
+      await chrome.windows.update(existing.windowId, {
+        focused: true
+      });
+      await chrome.tabs.update(existing.id, {
+        active: true
+      });
+      chrome.tabs.sendMessage(existing.id, {
+        type: "nexsion-open-updates"
+      }).catch(() => {});
+      return;
+    }
+  } catch (e) {
+    console.warn("[NexSion] Couldn't look for an open NexSion tab:", e);
+  }
+  try {
+    await chrome.tabs.create({
+      url: extNewtabUrl + "?open=updates"
+    });
+  } catch (e) {
+    console.warn("[NexSion] Couldn't open a NexSion tab:", e);
+  }
+}
+
+chrome.notifications.onClicked.addListener(id => {
+  if (id !== UPDATE_NOTIFICATION_ID) return;
+  chrome.notifications.clear(id);
+  openUpdatesTab();
+});
+chrome.notifications.onButtonClicked.addListener(id => {
+  if (id !== UPDATE_NOTIFICATION_ID) return;
+  chrome.notifications.clear(id);
+  openUpdatesTab();
+});
+
+/**
+ * Runs after installUpdate() has written the new files to disk. Finds every
+ * open NexSion tab (not just "the active tab" — that was the old bug, which
+ * could swap an unrelated tab if the click didn't happen from NexSion itself,
+ * and simply couldn't work at all for a background-triggered auto-update
+ * since there is no "active tab" to speak of), remembers them, then reloads
+ * the extension. Reloading tears down this service worker immediately, so
+ * the actual tab swap happens in handlePendingPostUpdateSwap() below, which
+ * runs again as soon as the freshly-updated background.js starts back up.
+ */
+async function finishUpdateAndReload() {
+  const extNewtabUrl = chrome.runtime.getURL("newtab.html");
+  let idsToSwap = [];
+  try {
+    const tabs = await chrome.tabs.query({});
+    idsToSwap = tabs
+      .filter(t => t.url === "chrome://newtab/" || t.url && t.url.startsWith(extNewtabUrl))
+      .map(t => t.id);
+  } catch (e) {
+    console.warn("[NexSion] Couldn't enumerate NexSion tabs before reload:", e);
+  }
+  await chrome.storage.local.set({
+    nexsion_pending_tab_swap_ids: idsToSwap
+  });
+  chrome.runtime.reload();
+}
 
 function setupYoutubeReferrerRule() {
   if (!chrome.declarativeNetRequest) return void console.warn(
@@ -98,22 +284,24 @@ function setupYoutubeReferrerRule() {
   }).catch(e => console.warn("[NexSion] Couldn't set YouTube referer rule:", e))
 }
 chrome.runtime.onInstalled.addListener(() => {
-  Store.ensureSeeded(), rebuildContextMenu()
+  Store.ensureSeeded(), rebuildContextMenu(), scheduleUpdateChecks()
 }), chrome.runtime.onStartup.addListener(() => {
-  rebuildContextMenu()
+  rebuildContextMenu(), scheduleUpdateChecks()
 }), chrome.commands.onCommand.addListener(e => {
   "quick-save" === e && quickSaveActiveTab()
 }), chrome.runtime.onMessage.addListener((e, t, n) => {
   if ("quick-save" === e?.type) return quickSaveActiveTab().then(() => n({
     ok: !0
   })), !0;
-  if ("prepare-post-update-swap" === e?.type) return chrome.storage.local.set({
-    nexsion_pending_tab_swap: e.oldTabId ?? null
-  }).then(() => n({
+  if ("nexsion-finish-update" === e?.type) return finishUpdateAndReload().then(() => n({
+    ok: !0
+  })), !0;
+  if ("nexsion-check-for-update" === e?.type) return runBackgroundUpdateCheck().then(() => n({
     ok: !0
   })), !0;
   "boards-changed" !== e?.type || rebuildContextMenu()
 }), chrome.alarms.onAlarm.addListener(async e => {
+  if (e.name === UPDATE_CHECK_ALARM) return void runBackgroundUpdateCheck();
   if (!e.name.startsWith("remind:")) return;
   const t = e.name.slice(7),
     n = (await Store.getAllItems()).find(e => e.id === t);
@@ -137,19 +325,21 @@ chrome.runtime.onInstalled.addListener(() => {
 });
 async function handlePendingPostUpdateSwap() {
   const {
-    nexsion_pending_tab_swap: e
-  } = await chrome.storage.local.get("nexsion_pending_tab_swap");
-  if (null == e) return;
-  await chrome.storage.local.remove("nexsion_pending_tab_swap");
-  try {
-    await chrome.tabs.create({})
-  } catch (e) {
-    console.warn("[NexSion] Couldn't open a fresh tab after update:", e)
-  }
-  try {
-    await chrome.tabs.remove(e)
-  } catch (e) {
-    console.warn("[NexSion] Couldn't close the pre-update tab:", e)
+    nexsion_pending_tab_swap_ids: ids
+  } = await chrome.storage.local.get("nexsion_pending_tab_swap_ids");
+  if (!ids || !ids.length) return;
+  await chrome.storage.local.remove("nexsion_pending_tab_swap_ids");
+  for (const id of ids) {
+    try {
+      await chrome.tabs.create({})
+    } catch (e) {
+      console.warn("[NexSion] Couldn't open a fresh tab after update:", e)
+    }
+    try {
+      await chrome.tabs.remove(id)
+    } catch (e) {
+      console.warn("[NexSion] Couldn't close a pre-update tab:", e)
+    }
   }
 }
 handlePendingPostUpdateSwap();

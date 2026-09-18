@@ -21,7 +21,7 @@ const SYNCED_SETTINGS_KEYS = [
   "wallpaperCloudUrl", "wallpaperGalleryId", "wallpaperYoutubeId", "quickSaveBoardId",
   "widgets", "widgetNotepad", "widgetLayout"
 ];
-const LOCAL_SETTINGS_KEYS = ["performanceMode", "privacyMode", "wallpaperLocal"];
+const LOCAL_SETTINGS_KEYS = ["performanceMode", "privacyMode", "wallpaperLocal", "autoUpdate"];
 
 const SETTINGS_DEFAULTS = {
   theme: "dark",
@@ -41,6 +41,7 @@ const SETTINGS_DEFAULTS = {
   performanceMode: false,
   privacyMode: false,
   wallpaperLocal: false,
+  autoUpdate: false,
   widgets: {
     clock: false,
     weather: false,

@@ -77,7 +77,14 @@
       </button>
       <button class="dock-btn dock-settings" id="dockSettings" title="Settings & account" aria-label="Settings & account">
         <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 00.3 1.9l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.7 1.7 0 00-1.9-.3 1.7 1.7 0 00-1 1.5V21a2 2 0 11-4 0v-.1a1.7 1.7 0 00-1-1.6 1.7 1.7 0 00-1.9.3l-.1.1a2 2 0 11-2.8-2.8l.1-.1a1.7 1.7 0 00.3-1.9 1.7 1.7 0 00-1.5-1H3a2 2 0 110-4h.1a1.7 1.7 0 001.6-1 1.7 1.7 0 00-.3-1.9l-.1-.1a2 2 0 112.8-2.8l.1.1a1.7 1.7 0 001.9.3H9a1.7 1.7 0 001-1.5V3a2 2 0 114 0v.1a1.7 1.7 0 001 1.5 1.7 1.7 0 001.9-.3l.1-.1a2 2 0 112.8 2.8l-.1.1a1.7 1.7 0 00-.3 1.9V9a1.7 1.7 0 001.5 1h.1a2 2 0 110 4h-.1a1.7 1.7 0 00-1.5 1z"/></svg>
+        <span class="dock-update-dot hidden" id="dockUpdateDot" title="Update available"></span>
       </button>
+    </div>
+
+    <!-- Corner toast shown while an update installs (manual click OR silent auto-update) -->
+    <div class="update-progress-toast hidden" id="updateProgressToast">
+      <span class="update-progress-spinner"></span>
+      <span id="updateProgressToastText">Updating NexSion…</span>
     </div>
 
     <!-- Search overlay -->
@@ -252,6 +259,21 @@
               <p class="muted" style="margin-top:6px;">
                 One-time setup: point NexSion to the exact folder you used for "Load unpacked". After that,
                 updates install automatically — no re-downloading or manual reinstalling.
+              </p>
+            </div>
+            <div class="settings-section">
+              <h4>Auto-Update</h4>
+              <label class="toggle-row">
+                <span>Install new updates automatically, in the background</span>
+                <span class="switch">
+                  <input type="checkbox" id="autoUpdateToggle" />
+                  <span class="switch-track"></span>
+                </span>
+              </label>
+              <p class="muted" style="margin-top:6px;">
+                Needs your update folder linked above (one-time). When it's on, NexSion checks for
+                new releases on its own, installs them the moment they're out, and shows a small
+                progress toast in the corner of the screen while it updates — no clicking needed.
               </p>
             </div>
             <div class="settings-section">

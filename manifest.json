@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "NexSion",
-  "version": "3.2.5",
+  "version": "3.3.0",
   "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAol4aGBJQS5PWKcThfD8yDZLH21jzpWF7zJfCpsuP6ruUC4FajPJxh3mphyrdVWTQ6GJPTmI3jiWeTjcmL7zO6Ys4Ui0Scm3u80U+P/jP4PwHv+qGjim/nAwwSwfRn414evCw3ZsR35zmgGrIggmxJZVPlWGRnMTksTjh8Lb56dct7DSQ5v5RdjhO2RP75SjQuqcjnSDF74fmiEBEjnZ6IUxweC0WgOLBivmFr4+luO3xWrd4nSLVqW19btJOZij+KczgNHBG/Vw/4Eq9biSVNamCf/29fdlsBxXxgEt+r8wwi6rBEY/EHqSRsW/iFUeZ+/YLGdpIGUbTjyqQDVgSNQIDAQAB",
   "content_security_policy": {
     "extension_pages": "script-src 'self'; object-src 'self'"

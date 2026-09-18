@@ -1,5 +1,5 @@
 {
-  "latestVersion": "3.2.5",
-  "zipUrl": "https://github.com/nexerisltd/NexSion/releases/download/v3.2.5/NexSion_v3.2.5.zip",
-  "notes": "- Fixed 'Check for Update' sometimes showing an old version even after Update.json was updated on GitHub — raw.githubusercontent.com's CDN was serving a cached copy\n- Release notes and update checks now always fetch a fresh copy instead of a stale cached one"
+  "latestVersion": "3.3.0",
+  "zipUrl": "https://github.com/nexerisltd/NexSion/releases/download/v3.3.0/NexSion_v3.3.0.zip",
+  "notes": "- New: background auto-update — NexSion now checks for new releases on its own, even if you never open a new tab\n- New: a system notification pops up the moment an update is out; click it to jump straight to Settings \u2192 Updates with the Install button ready — one click and you're done\n- New: a small blinking dot appears on the Settings button whenever an update is waiting, so you notice it without digging through menus\n- New: Auto-Update toggle in Settings \u2192 Updates — turn it on (after linking your update folder) and NexSion installs new versions completely on its own, showing a small progress toast in the corner of the screen while it updates\n- Fixed: installing an update could grab whichever browser tab happened to be active and swap/close it, even if it wasn't a NexSion tab — it now only ever touches NexSion's own tabs"
 }

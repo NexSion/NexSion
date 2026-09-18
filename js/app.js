@@ -1391,12 +1391,30 @@ signInBtn.addEventListener("click", () => performSignIn(!1)), gateSignInBtn.addE
       await renderAuth(), await refresh(), toast("Signed out"))
   });
 const openInNewTabToggle = document.getElementById("openInNewTabToggle"),
-  performanceModeToggle = document.getElementById("performanceModeToggle");
+  performanceModeToggle = document.getElementById("performanceModeToggle"),
+  autoUpdateToggle = document.getElementById("autoUpdateToggle");
 
 function syncSettingsToggles() {
   openInNewTabToggle.checked = !!state.settings.openInNewTab, performanceModeToggle.checked = !!
-    state.settings.performanceMode
+    state.settings.performanceMode, autoUpdateToggle.checked = !!state.settings.autoUpdate
 }
+autoUpdateToggle.addEventListener("change", async () => {
+  const enabling = autoUpdateToggle.checked;
+  await Store.setSettings({
+    autoUpdate: enabling
+  }), state.settings = await Store.getSettings();
+  if (enabling && !await NexSionUpdater.isUpdateFolderLinked()) {
+    toast("Auto-Update is on — link your update folder above so it can install silently");
+  } else {
+    toast(enabling ? "Auto-Update on — new versions install themselves in the background" :
+      "Auto-Update off — you'll get a notification instead");
+  }
+  // Ask background.js to re-check right away so the new setting takes effect immediately
+  // instead of waiting for the next periodic alarm.
+  chrome.runtime.sendMessage({
+    type: "nexsion-check-for-update"
+  }).catch(() => {});
+});
 openInNewTabToggle.addEventListener("change", async () => {
   await Store.setSettings({
     openInNewTab: openInNewTabToggle.checked
@@ -1474,7 +1492,62 @@ const updateFolderStatusEl = document.getElementById("updateFolderStatus"),
   checkUpdateBtn = document.getElementById("checkUpdateBtn"),
   whatsNewBtn = document.getElementById("whatsNewBtn"),
   updateResultBox = document.getElementById("updateResultBox"),
-  updateAvailableDot = document.getElementById("updateAvailableDot");
+  updateAvailableDot = document.getElementById("updateAvailableDot"),
+  dockUpdateDot = document.getElementById("dockUpdateDot"),
+  updateProgressToast = document.getElementById("updateProgressToast"),
+  updateProgressToastText = document.getElementById("updateProgressToastText");
+
+/** Lights up (or clears) both the Updates-tab dot and the Settings dock corner dot. */
+function setUpdateBadge(available) {
+  updateAvailableDot.classList.toggle("hidden", !available);
+  dockUpdateDot.classList.toggle("hidden", !available);
+}
+
+function showUpdateProgressToast(stage) {
+  if (!stage) {
+    updateProgressToast.classList.add("hidden");
+    return;
+  }
+  updateProgressToastText.textContent = stage;
+  updateProgressToast.classList.remove("hidden");
+}
+
+// Seed the badge immediately from whatever background.js last found, instead of
+// waiting for this page's own delayed check — so it's accurate the instant a new
+// tab opens, even if NexSion wasn't open when the update actually became available.
+chrome.storage.local.get("nexsion_update_state").then(({
+  nexsion_update_state: cached
+}) => {
+  if (cached) setUpdateBadge(!!cached.available);
+}).catch(() => {});
+
+// Live updates from background.js: badge state changes, install progress, and
+// "jump to Updates" requests (from a clicked notification or a re-focused tab).
+chrome.runtime.onMessage.addListener(message => {
+  if (!message) return;
+  if (message.type === "nexsion-update-state-changed") {
+    setUpdateBadge(!!message.state?.available);
+  } else if (message.type === "nexsion-update-progress") {
+    showUpdateProgressToast(message.stage);
+  } else if (message.type === "nexsion-open-updates") {
+    openUpdatesPanelDirectly();
+  }
+});
+
+/** Opens Settings straight to the Updates tab and shows the available update, ready to install in one click. */
+function openUpdatesPanelDirectly() {
+  syncSettingsToggles();
+  openModal("settingsModal");
+  document.querySelector('.settings-tab-btn[data-tab="updates"]')?.click();
+  runUpdateCheck(!0).catch(() => {});
+}
+
+// Reached via the notification's "View & Install" action, or a background-opened
+// tab: chrome-extension://…/newtab.html?open=updates — land straight on the
+// Updates panel with the Install button already visible (the promised "1 click").
+if (new URLSearchParams(location.search).get("open") === "updates") {
+  window.addEventListener("DOMContentLoaded", () => setTimeout(openUpdatesPanelDirectly, 300));
+}
 async function refreshUpdatesPanel() {
   try {
     const linked = await NexSionUpdater.isUpdateFolderLinked();
@@ -1526,7 +1599,7 @@ async function runUpdateCheck(showBusyState) {
   }
   try {
     const result = await NexSionUpdater.checkForUpdate();
-    updateAvailableDot.classList.toggle("hidden", !result.available);
+    setUpdateBadge(result.available);
     if (!showBusyState) return result;
     if (!result.available) {
       updateResultBox.innerHTML = `<p class="muted">You're up to date — v${result.current}.</p>`;
@@ -1560,12 +1633,13 @@ async function runUpdateCheck(showBusyState) {
           return
         }
         await NexSionUpdater.installUpdate(result.zipUrl, stage => {
-          progressText.textContent = stage
+          progressText.textContent = stage, showUpdateProgressToast(stage)
         });
         // If we get here without a reload having happened yet, the tab is about to be replaced anyway.
       } catch (e) {
         console.error("[NexSion] Update install failed:", e);
         progressText.textContent = "Update failed — " + (e.message || "please try again.");
+        showUpdateProgressToast(null);
         installBtn.disabled = !1, laterBtn.disabled = !1;
       }
     });

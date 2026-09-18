@@ -2522,7 +2522,7 @@ document.getElementById("importPageBtn").addEventListener("click", () => {
   }
 });
 const NEXSION_INVITE_MESSAGE =
-  "Try NexSion — a visual bookmark & new-tab workspace for Chrome.\n\nSince it's not on the Chrome Web Store yet, install it manually:\n1. Download: https://github.com/nexerisltd/NexSion/releases/latest\n2. Unzip the folder\n3. Go to chrome://extensions and turn on \"Developer mode\"\n4. Click \"Load unpacked\" and select the unzipped folder";
+  "Try NexSion — a visual bookmark & new-tab workspace for Chrome.\n\nSince it's not on the Chrome Web Store yet, install it manually:\n1. Download: https://github.com/NexSion/NexSion/releases/latest\n2. Unzip the folder\n3. Go to chrome://extensions and turn on \"Developer mode\"\n4. Click \"Load unpacked\" and select the unzipped folder";
 document.getElementById("inviteFriendsBtn").addEventListener("click", () => openModal(
     "inviteModal")), document.getElementById("closeInviteModal").addEventListener("click", () =>
     closeModal("inviteModal")), document.getElementById("inviteModal").addEventListener("click",

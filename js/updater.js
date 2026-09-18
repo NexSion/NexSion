@@ -20,8 +20,8 @@
 const UPDATER_DB_NAME = "nexsion_updater_db";
 const UPDATER_STORE = "handles";
 const UPDATER_HANDLE_KEY = "updateFolder";
-const RELEASE_NOTES_URL = "https://raw.githubusercontent.com/nexerisltd/NexSion/main/Release.json";
-const UPDATE_CHECK_URL = "https://raw.githubusercontent.com/nexerisltd/NexSion/main/Update.json";
+const RELEASE_NOTES_URL = "https://raw.githubusercontent.com/NexSion/NexSion/main/Release.json";
+const UPDATE_CHECK_URL = "https://raw.githubusercontent.com/NexSion/NexSion/main/Update.json";
 
 function openUpdaterDb() {
   return new Promise((resolve, reject) => {

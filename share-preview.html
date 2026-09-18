@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Shared from NexSion</title>
+<meta name="robots" content="noindex">
+<style>
+  :root {
+    --bg: #0c0e13;
+    --panel: #14171f;
+    --panel-border: rgba(255,255,255,0.08);
+    --text: #eef1f6;
+    --muted: #8b93a3;
+    --accent: #3b9eff;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    background: radial-gradient(circle at 20% 0%, #131826 0%, var(--bg) 55%);
+    color: var(--text);
+    font: 15px/1.5 -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  main { width: 100%; max-width: 480px; }
+
+  .wordmark {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 28px;
+    font-weight: 700;
+    font-size: 15px;
+    letter-spacing: -0.01em;
+  }
+  .wordmark .dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--accent);
+  }
+
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 16px;
+    padding: 28px;
+  }
+  .card h1 {
+    margin: 0 0 6px;
+    font-size: 22px;
+    font-weight: 650;
+    letter-spacing: -0.015em;
+    line-height: 1.25;
+  }
+  .card .meta {
+    margin: 0 0 20px;
+    color: var(--muted);
+    font-size: 13.5px;
+  }
+
+  .links { list-style: none; margin: 0 0 24px; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+  .links li {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 10px;
+    border-radius: 9px;
+  }
+  .links li:hover { background: rgba(255,255,255,0.04); }
+  .links img { width: 16px; height: 16px; border-radius: 3px; flex: 0 0 auto; }
+  .links a { color: var(--text); text-decoration: none; font-size: 13.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .links a:hover { color: var(--accent); }
+  .links .more { padding: 9px 10px; color: var(--muted); font-size: 13px; }
+
+  .actions { display: flex; flex-direction: column; gap: 10px; }
+  button, .btn {
+    appearance: none;
+    border: none;
+    border-radius: 10px;
+    padding: 12px 16px;
+    font: inherit;
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+    text-align: center;
+    text-decoration: none;
+    display: block;
+  }
+  .btn-primary { background: var(--accent); color: #04101f; }
+  .btn-primary:hover { filter: brightness(1.08); }
+  .btn-secondary { background: transparent; color: var(--text); border: 1px solid var(--panel-border); }
+  .btn-secondary:hover { background: rgba(255,255,255,0.04); }
+
+  .hint { margin-top: 16px; color: var(--muted); font-size: 12.5px; text-align: center; }
+
+  .state { text-align: center; padding: 40px 20px; color: var(--muted); }
+  .hidden { display: none !important; }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .card { animation: rise 0.35s ease; }
+    @keyframes rise { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+  }
+</style>
+</head>
+<body>
+<main>
+  <div class="wordmark"><span class="dot"></span> NexSion</div>
+
+  <div class="card">
+    <div id="loadingState" class="state">Loading what was shared with you…</div>
+
+    <div id="errorState" class="state hidden">
+      This link isn't valid anymore, or the person who shared it removed it.
+    </div>
+
+    <div id="contentState" class="hidden">
+      <h1 id="shareTitle"></h1>
+      <p class="meta" id="shareMeta"></p>
+      <ul class="links" id="linkList"></ul>
+      <div class="actions">
+        <button class="btn-primary" id="copyCodeBtn">Copy code to import in NexSion</button>
+        <a class="btn btn-secondary" id="getExtensionLink" href="https://github.com/nexerisltd/NexSion" target="_blank" rel="noopener">Don't have NexSion yet? Get it here</a>
+      </div>
+      <p class="hint">Open NexSion, click "Import a shared page," and paste the copied code.</p>
+    </div>
+  </div>
+</main>
+
+<script>
+(async function () {
+  const FIREBASE_PROJECT_ID = "nexsion-4f4e0";
+  const FIRESTORE_BASE = `https://firestore.googleapis.com/v1/projects/${FIREBASE_PROJECT_ID}/databases/(default)/documents`;
+
+  const params = new URLSearchParams(location.search);
+  const shareId = params.get("id");
+
+  const loadingEl = document.getElementById("loadingState");
+  const errorEl = document.getElementById("errorState");
+  const contentEl = document.getElementById("contentState");
+
+  function showError() {
+    loadingEl.classList.add("hidden");
+    errorEl.classList.remove("hidden");
+  }
+
+  function faviconFor(url) {
+    try {
+      const u = new URL(url);
+      return `https://www.google.com/s2/favicons?sz=32&domain=${u.hostname}`;
+    } catch {
+      return "";
+    }
+  }
+
+  function escapeHtml(str) {
+    const div = document.createElement("div");
+    div.textContent = String(str ?? "");
+    return div.innerHTML;
+  }
+
+  if (!shareId || !/^[a-z0-9]{4,32}$/i.test(shareId)) return showError();
+
+  let doc;
+  try {
+    const res = await fetch(`${FIRESTORE_BASE}/nexsion_shares/${encodeURIComponent(shareId)}`);
+    if (!res.ok) return showError();
+    doc = await res.json();
+  } catch {
+    return showError();
+  }
+
+  let payload, title;
+  try {
+    payload = JSON.parse(doc.fields.data.stringValue);
+    title = doc.fields.title?.stringValue || "Shared links";
+  } catch {
+    return showError();
+  }
+
+  const links = Array.isArray(payload.links)
+    ? payload.links
+    : Array.isArray(payload.boards)
+      ? payload.boards.flatMap((b) => b.links || [])
+      : [];
+
+  document.getElementById("shareTitle").textContent = title;
+  document.getElementById("shareMeta").textContent =
+    `${links.length} link${links.length === 1 ? "" : "s"} shared via NexSion`;
+
+  const listEl = document.getElementById("linkList");
+  const PREVIEW_LIMIT = 8;
+  links.slice(0, PREVIEW_LIMIT).forEach((link) => {
+    const li = document.createElement("li");
+    li.innerHTML =
+      `<img src="${faviconFor(link.url)}" alt="" loading="lazy">` +
+      `<a href="${escapeHtml(link.url)}" target="_blank" rel="noopener">${escapeHtml(link.title || link.url)}</a>`;
+    listEl.appendChild(li);
+  });
+  if (links.length > PREVIEW_LIMIT) {
+    const li = document.createElement("li");
+    li.className = "more";
+    li.textContent = `+ ${links.length - PREVIEW_LIMIT} more`;
+    listEl.appendChild(li);
+  }
+
+  // Re-encode using the same NXS2 gzip+base64+checksum format the extension
+  // itself produces, so "Copy code" pastes into NexSion's importer unchanged.
+  document.getElementById("copyCodeBtn").addEventListener("click", async () => {
+    const btn = document.getElementById("copyCodeBtn");
+    try {
+      const bytes = new TextEncoder().encode(JSON.stringify(payload));
+      const gz = new Blob([bytes]).stream().pipeThrough(new CompressionStream("gzip"));
+      const compressed = new Uint8Array(await new Response(gz).arrayBuffer());
+      let binary = "";
+      for (let i = 0; i < compressed.length; i++) binary += String.fromCharCode(compressed[i]);
+      const b64 = btoa(binary);
+      const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(b64));
+      const checksum = Array.from(new Uint8Array(digest)).slice(0, 4)
+        .map((b) => b.toString(16).padStart(2, "0")).join("");
+      const code = `NXS2:${b64}:${checksum}`;
+      await navigator.clipboard.writeText(code);
+      btn.textContent = "Copied! Paste it into NexSion";
+      setTimeout(() => (btn.textContent = "Copy code to import in NexSion"), 2500);
+    } catch {
+      btn.textContent = "Couldn't copy — try selecting manually";
+    }
+  });
+
+  loadingEl.classList.add("hidden");
+  contentEl.classList.remove("hidden");
+})();
+</script>
+</body>
+</html>

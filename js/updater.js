@@ -27,7 +27,8 @@ function openUpdaterDb() {
   return new Promise((resolve, reject) => {
     const req = indexedDB.open(UPDATER_DB_NAME, 1);
     req.onupgradeneeded = () => {
-      if (!req.result.objectStoreNames.contains(UPDATER_STORE)) req.result.createObjectStore(UPDATER_STORE);
+      if (!req.result.objectStoreNames.contains(UPDATER_STORE)) req.result.createObjectStore(
+        UPDATER_STORE);
     };
     req.onsuccess = () => resolve(req.result);
     req.onerror = () => reject(req.error);
@@ -47,7 +48,8 @@ async function saveDirHandle(handle) {
 async function loadDirHandle() {
   const db = await openUpdaterDb();
   return new Promise((resolve, reject) => {
-    const req = db.transaction(UPDATER_STORE, "readonly").objectStore(UPDATER_STORE).get(UPDATER_HANDLE_KEY);
+    const req = db.transaction(UPDATER_STORE, "readonly").objectStore(UPDATER_STORE).get(
+      UPDATER_HANDLE_KEY);
     req.onsuccess = () => resolve(req.result || null);
     req.onerror = () => reject(req.error);
   });
@@ -66,14 +68,21 @@ async function clearDirHandle() {
 /** Must be called directly inside a click handler — browsers require a user gesture. */
 async function linkUpdateFolder() {
   if (!window.showDirectoryPicker) {
-    throw new Error("This Chrome version doesn't support the File System Access API needed for auto-update. Please update Chrome.");
+    throw new Error(
+      "This Chrome version doesn't support the File System Access API needed for auto-update. Please update Chrome."
+      );
   }
-  const handle = await window.showDirectoryPicker({ id: "nexsion-update-folder", mode: "readwrite" });
+  const handle = await window.showDirectoryPicker({
+    id: "nexsion-update-folder",
+    mode: "readwrite"
+  });
   let manifestHandle;
   try {
     manifestHandle = await handle.getFileHandle("manifest.json");
   } catch {
-    throw new Error('That folder has no manifest.json in it — pick the exact folder you used for "Load unpacked".');
+    throw new Error(
+      'That folder has no manifest.json in it — pick the exact folder you used for "Load unpacked".'
+      );
   }
   let manifestData;
   try {
@@ -96,29 +105,39 @@ async function isUpdateFolderLinked() {
 async function getVerifiedDirHandle() {
   const handle = await loadDirHandle();
   if (!handle) return null;
-  const current = await handle.queryPermission({ mode: "readwrite" });
+  const current = await handle.queryPermission({
+    mode: "readwrite"
+  });
   if (current === "granted") return handle;
-  const requested = await handle.requestPermission({ mode: "readwrite" });
+  const requested = await handle.requestPermission({
+    mode: "readwrite"
+  });
   return requested === "granted" ? handle : null;
 }
 
 async function fetchReleaseNotes() {
-  const res = await fetch(RELEASE_NOTES_URL + "?t=" + Date.now(), { cache: "no-store" });
+  const res = await fetch(RELEASE_NOTES_URL + "?t=" + Date.now(), {
+    cache: "no-store"
+  });
   if (!res.ok) throw new Error("Couldn't reach the release notes (status " + res.status + ").");
   return res.json();
 }
 
 function compareVersions(a, b) {
-  const pa = String(a).split(".").map(Number), pb = String(b).split(".").map(Number);
+  const pa = String(a).split(".").map(Number),
+    pb = String(b).split(".").map(Number);
   for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
-    const x = pa[i] || 0, y = pb[i] || 0;
+    const x = pa[i] || 0,
+      y = pb[i] || 0;
     if (x !== y) return x - y;
   }
   return 0;
 }
 
 async function checkForUpdate() {
-  const res = await fetch(UPDATE_CHECK_URL + "?t=" + Date.now(), { cache: "no-store" });
+  const res = await fetch(UPDATE_CHECK_URL + "?t=" + Date.now(), {
+    cache: "no-store"
+  });
   if (!res.ok) throw new Error("Couldn't reach the update server (status " + res.status + ").");
   const data = await res.json();
   const current = chrome.runtime.getManifest().version;
@@ -144,16 +163,21 @@ async function unzip(arrayBuffer) {
   let eocdOffset = -1;
   const searchFloor = Math.max(0, bytes.length - 22 - 65535);
   for (let i = bytes.length - 22; i >= searchFloor; i--) {
-    if (view.getUint32(i, true) === 0x06054b50) { eocdOffset = i; break; }
+    if (view.getUint32(i, true) === 0x06054b50) {
+      eocdOffset = i;
+      break;
+    }
   }
-  if (eocdOffset === -1) throw new Error("Not a valid ZIP file (no end-of-central-directory record found).");
+  if (eocdOffset === -1) throw new Error(
+    "Not a valid ZIP file (no end-of-central-directory record found).");
 
   const entryCount = view.getUint16(eocdOffset + 10, true);
   let cdOffset = view.getUint32(eocdOffset + 16, true);
 
   const entries = [];
   for (let i = 0; i < entryCount; i++) {
-    if (view.getUint32(cdOffset, true) !== 0x02014b50) throw new Error("Corrupt ZIP central directory.");
+    if (view.getUint32(cdOffset, true) !== 0x02014b50) throw new Error(
+      "Corrupt ZIP central directory.");
     const compressionMethod = view.getUint16(cdOffset + 10, true);
     const compressedSize = view.getUint32(cdOffset + 20, true);
     const nameLen = view.getUint16(cdOffset + 28, true);
@@ -161,7 +185,12 @@ async function unzip(arrayBuffer) {
     const commentLen = view.getUint16(cdOffset + 32, true);
     const localHeaderOffset = view.getUint32(cdOffset + 42, true);
     const name = new TextDecoder().decode(bytes.slice(cdOffset + 46, cdOffset + 46 + nameLen));
-    entries.push({ name, compressionMethod, compressedSize, localHeaderOffset });
+    entries.push({
+      name,
+      compressionMethod,
+      compressedSize,
+      localHeaderOffset
+    });
     cdOffset += 46 + nameLen + extraLen + commentLen;
   }
 
@@ -169,7 +198,8 @@ async function unzip(arrayBuffer) {
   for (const entry of entries) {
     if (entry.name.endsWith("/")) continue; // directory entry, no data to write
     const lh = entry.localHeaderOffset;
-    if (view.getUint32(lh, true) !== 0x04034b50) throw new Error("Corrupt ZIP local header for " + entry.name);
+    if (view.getUint32(lh, true) !== 0x04034b50) throw new Error("Corrupt ZIP local header for " +
+      entry.name);
     const nameLen = view.getUint16(lh + 26, true);
     const extraLen = view.getUint16(lh + 28, true);
     const dataStart = lh + 30 + nameLen + extraLen;
@@ -179,12 +209,17 @@ async function unzip(arrayBuffer) {
     if (entry.compressionMethod === 0) {
       data = compressed;
     } else if (entry.compressionMethod === 8) {
-      const stream = new Blob([compressed]).stream().pipeThrough(new DecompressionStream("deflate-raw"));
+      const stream = new Blob([compressed]).stream().pipeThrough(new DecompressionStream(
+        "deflate-raw"));
       data = new Uint8Array(await new Response(stream).arrayBuffer());
     } else {
-      throw new Error("Unsupported ZIP compression for " + entry.name + " — re-zip the release using standard Deflate or Store.");
+      throw new Error("Unsupported ZIP compression for " + entry.name +
+        " — re-zip the release using standard Deflate or Store.");
     }
-    files.push({ name: entry.name, data });
+    files.push({
+      name: entry.name,
+      data
+    });
   }
   return files;
 }
@@ -195,7 +230,10 @@ function stripTopFolder(files) {
   const roots = files.map(f => f.name.split("/")[0]);
   const singleRoot = files.every(f => f.name.includes("/")) && roots.every(r => r === roots[0]);
   if (!singleRoot) return files;
-  return files.map(f => ({ name: f.name.split("/").slice(1).join("/"), data: f.data }));
+  return files.map(f => ({
+    name: f.name.split("/").slice(1).join("/"),
+    data: f.data
+  }));
 }
 
 async function writeFilesToDir(dirHandle, files) {
@@ -204,8 +242,12 @@ async function writeFilesToDir(dirHandle, files) {
     const parts = file.name.split("/").filter(Boolean);
     const fileName = parts.pop();
     let dir = dirHandle;
-    for (const part of parts) dir = await dir.getDirectoryHandle(part, { create: true });
-    const fileHandle = await dir.getFileHandle(fileName, { create: true });
+    for (const part of parts) dir = await dir.getDirectoryHandle(part, {
+      create: true
+    });
+    const fileHandle = await dir.getFileHandle(fileName, {
+      create: true
+    });
     const writable = await fileHandle.createWritable();
     await writable.write(file.data);
     await writable.close();
@@ -220,10 +262,13 @@ async function writeFilesToDir(dirHandle, files) {
  */
 async function installUpdate(zipUrl, onProgress) {
   const dirHandle = await getVerifiedDirHandle();
-  if (!dirHandle) throw new Error("Update folder isn't linked (or permission was revoked) — link it again first.");
+  if (!dirHandle) throw new Error(
+    "Update folder isn't linked (or permission was revoked) — link it again first.");
 
   onProgress?.("Downloading update…");
-  const res = await fetch(zipUrl, { cache: "no-store" });
+  const res = await fetch(zipUrl, {
+    cache: "no-store"
+  });
   if (!res.ok) throw new Error("Download failed (status " + res.status + ").");
   const buffer = await res.arrayBuffer();
 
@@ -231,20 +276,35 @@ async function installUpdate(zipUrl, onProgress) {
   let files = await unzip(buffer);
   files = stripTopFolder(files);
   if (!files.some(f => f.name === "manifest.json")) {
-    throw new Error("That ZIP doesn't have a manifest.json at its root — check the release ZIP's folder structure.");
+    throw new Error(
+      "That ZIP doesn't have a manifest.json at its root — check the release ZIP's folder structure."
+      );
   }
 
   onProgress?.("Installing…");
   await writeFilesToDir(dirHandle, files);
 
   onProgress?.("Restarting NexSion…");
-  await chrome.storage.local.set({ nexsion_pending_changelog: true });
-  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-  await chrome.runtime.sendMessage({ type: "prepare-post-update-swap", oldTabId: tab?.id ?? null });
+  await chrome.storage.local.set({
+    nexsion_pending_changelog: true
+  });
+  const [tab] = await chrome.tabs.query({
+    active: true,
+    currentWindow: true
+  });
+  await chrome.runtime.sendMessage({
+    type: "prepare-post-update-swap",
+    oldTabId: tab?.id ?? null
+  });
   chrome.runtime.reload();
 }
 
 self.NexSionUpdater = {
-  isUpdateFolderLinked, linkUpdateFolder, getVerifiedDirHandle, clearDirHandle,
-  fetchReleaseNotes, checkForUpdate, installUpdate
+  isUpdateFolderLinked,
+  linkUpdateFolder,
+  getVerifiedDirHandle,
+  clearDirHandle,
+  fetchReleaseNotes,
+  checkForUpdate,
+  installUpdate
 };

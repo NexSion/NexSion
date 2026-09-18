@@ -41,13 +41,18 @@ const SETTINGS_DEFAULTS = {
   performanceMode: false,
   privacyMode: false,
   wallpaperLocal: false,
-  widgets: { clock: false, weather: false, quote: false, notepad: false },
+  widgets: {
+    clock: false,
+    weather: false,
+    quote: false,
+    notepad: false
+  },
   widgetNotepad: "",
   widgetLayout: {}
 };
 
 /* ---------------- in-memory bucket cache ---------------- */
-let _bucketCache = null;   // resolved merged bucket
+let _bucketCache = null; // resolved merged bucket
 let _bucketPromise = null; // in-flight fetch (dedupes concurrent callers)
 
 function invalidateBucketCache() {
@@ -62,20 +67,39 @@ if (typeof chrome !== "undefined" && chrome.storage?.onChanged) {
 }
 
 async function migrateWallpaperBlobIfNeeded() {
-  const { local_settings: e } = await chrome.storage.local.get("local_settings");
+  const {
+    local_settings: e
+  } = await chrome.storage.local.get("local_settings");
   const t = e?.wallpaperDataUrl;
   if (!t) return;
   try {
     const res = await fetch(t);
     const blob = await res.blob();
     await self.WallpaperDB.saveBlob(blob);
-    const { wallpaperDataUrl, ...rest } = e;
-    await chrome.storage.local.set({ local_settings: { ...rest, wallpaperLocal: true } });
-    console.log("[NexSion] Migrated wallpaper to IndexedDB — this should noticeably cut RAM use.");
+    const {
+      wallpaperDataUrl,
+      ...rest
+    } = e;
+    await chrome.storage.local.set({
+      local_settings: {
+        ...rest,
+        wallpaperLocal: true
+      }
+    });
+    console.log(
+    "[NexSion] Migrated wallpaper to IndexedDB — this should noticeably cut RAM use.");
   } catch (err) {
     console.warn("[NexSion] Wallpaper migration failed, resetting to default wallpaper:", err);
-    const { wallpaperDataUrl, ...rest } = e;
-    await chrome.storage.local.set({ local_settings: { ...rest, wallpaperLocal: false } });
+    const {
+      wallpaperDataUrl,
+      ...rest
+    } = e;
+    await chrome.storage.local.set({
+      local_settings: {
+        ...rest,
+        wallpaperLocal: false
+      }
+    });
   }
 }
 
@@ -87,7 +111,9 @@ async function getMergedBucket() {
       chrome.storage.sync.get(null),
       chrome.storage.local.get(null)
     ]);
-    const merged = { ...syncData };
+    const merged = {
+      ...syncData
+    };
     for (const key of Object.keys(localData)) {
       if (key.startsWith("ovf_")) merged[key.slice(4)] = localData[key];
     }
@@ -107,19 +133,26 @@ async function readRecord(key) {
 }
 
 function notifyCloud() {
-  try { self.CloudSync?.notifyChange(); } catch { /* no-op: cloud sync optional */ }
+  try {
+    self.CloudSync?.notifyChange();
+  } catch {
+    /* no-op: cloud sync optional */ }
 }
 
 async function writeRecordSafe(key, value) {
   invalidateBucketCache();
   try {
-    await chrome.storage.sync.set({ [key]: value });
+    await chrome.storage.sync.set({
+      [key]: value
+    });
     await chrome.storage.local.remove("ovf_" + key).catch(() => {});
     notifyCloud();
     return true;
   } catch (err) {
     console.warn(`[NexSion] Sync quota hit — "${key}" kept on this device only.`, err);
-    await chrome.storage.local.set({ ["ovf_" + key]: value });
+    await chrome.storage.local.set({
+      ["ovf_" + key]: value
+    });
     notifyCloud();
     return false;
   }
@@ -149,25 +182,38 @@ async function migrateFromLocalArraysIfPresent() {
   const e = await chrome.storage.local.get(["lb_pages", "lb_boards", "lb_items", "lb_settings"]);
   if (!e.lb_pages || e.lb_pages.length === 0) return false;
   console.log("[NexSion] Migrating existing bookmarks to the new sync-enabled storage…");
-  const pages = e.lb_pages || [], boards = e.lb_boards || [], items = e.lb_items || [];
+  const pages = e.lb_pages || [],
+    boards = e.lb_boards || [],
+    items = e.lb_items || [];
   const overflow = await writeManySafe([
     ...pages.map(p => ["sp:" + p.id, p]),
     ...boards.map(b => ["sb:" + b.id, b]),
     ...items.map(i => ["si:" + i.id, i])
   ]);
   if (e.lb_settings) {
-    const src = e.lb_settings, synced = {}, local = {};
+    const src = e.lb_settings,
+      synced = {},
+      local = {};
     for (const key of Object.keys(src)) {
       if (LOCAL_SETTINGS_KEYS.includes(key)) local[key] = src[key];
       else if (SYNCED_SETTINGS_KEYS.includes(key)) synced[key] = src[key];
     }
-    if (Object.keys(synced).length) await chrome.storage.sync.set({ sync_settings: synced }).catch(() => {});
-    if (Object.keys(local).length) await chrome.storage.local.set({ local_settings: local });
+    if (Object.keys(synced).length) await chrome.storage.sync.set({
+      sync_settings: synced
+    }).catch(() => {});
+    if (Object.keys(local).length) await chrome.storage.local.set({
+      local_settings: local
+    });
   }
-  await chrome.storage.local.set({ lb_pages_backup_v1: pages, lb_boards_backup_v1: boards, lb_items_backup_v1: items });
+  await chrome.storage.local.set({
+    lb_pages_backup_v1: pages,
+    lb_boards_backup_v1: boards,
+    lb_items_backup_v1: items
+  });
   await chrome.storage.local.remove(["lb_pages", "lb_boards", "lb_items", "lb_settings"]);
   invalidateBucketCache();
-  console.log(`[NexSion] Migration done: ${pages.length} pages, ${boards.length} boards, ${items.length} items` +
+  console.log(
+    `[NexSion] Migration done: ${pages.length} pages, ${boards.length} boards, ${items.length} items` +
     (overflow ? ` (${overflow} kept device-local — sync quota was full).` : "."));
   return true;
 }
@@ -178,11 +224,31 @@ async function ensureSeeded() {
 
   const bucket = await getMergedBucket();
   if (!Object.keys(bucket).some(k => k.startsWith("sp:"))) {
-    const pageId = "page-home", quickId = "board-quick", readingId = "board-reading";
+    const pageId = "page-home",
+      quickId = "board-quick",
+      readingId = "board-reading";
     await writeManySafe([
-      ["sp:" + pageId, { id: pageId, name: "Home", order: 0 }],
-      ["sb:" + quickId, { id: quickId, pageId, name: "Quick Saves", order: 0, column: 0, color: "#2F6F62" }],
-      ["sb:" + readingId, { id: readingId, pageId, name: "Reading List", order: 0, column: 1, color: "#D9A441" }]
+      ["sp:" + pageId, {
+        id: pageId,
+        name: "Home",
+        order: 0
+      }],
+      ["sb:" + quickId, {
+        id: quickId,
+        pageId,
+        name: "Quick Saves",
+        order: 0,
+        column: 0,
+        color: "#2F6F62"
+      }],
+      ["sb:" + readingId, {
+        id: readingId,
+        pageId,
+        name: "Reading List",
+        order: 0,
+        column: 1,
+        color: "#D9A441"
+      }]
     ]);
   }
 
@@ -200,10 +266,14 @@ async function ensureSeeded() {
 }
 
 let overflowNotified = false;
+
 function notifyOverflow() {
   if (overflowNotified) return;
   overflowNotified = true;
-  try { self.dispatchEvent(new CustomEvent("nexsion-sync-overflow")); } catch { /* no listener yet */ }
+  try {
+    self.dispatchEvent(new CustomEvent("nexsion-sync-overflow"));
+  } catch {
+    /* no listener yet */ }
 }
 
 const Store = {
@@ -212,7 +282,8 @@ const Store = {
 
   async getPages() {
     const bucket = await getMergedBucket();
-    return Object.keys(bucket).filter(k => k.startsWith("sp:")).map(k => bucket[k]).sort((a, b) => a.order - b.order);
+    return Object.keys(bucket).filter(k => k.startsWith("sp:")).map(k => bucket[k]).sort((a,
+      b) => a.order - b.order);
   },
 
   async getBoards(pageId) {
@@ -227,25 +298,36 @@ const Store = {
       .filter(i => !boardId || i.boardId === boardId).sort((a, b) => a.order - b.order);
   },
 
-  async getAllItems() { return this.getItems(null); },
+  async getAllItems() {
+    return this.getItems(null);
+  },
 
   async addPage(name) {
     const pages = await this.getPages();
-    const page = { id: "page-" + uid(), name, order: pages.length };
+    const page = {
+      id: "page-" + uid(),
+      name,
+      order: pages.length
+    };
     if (!(await writeRecordSafe("sp:" + page.id, page))) notifyOverflow();
     return page;
   },
 
   async renamePage(id, name) {
     const page = await readRecord("sp:" + id);
-    if (page) await writeRecordSafe("sp:" + id, { ...page, name });
+    if (page) await writeRecordSafe("sp:" + id, {
+      ...page,
+      name
+    });
   },
 
   async deletePage(id) {
     const bucket = await getMergedBucket();
-    const boardKeys = Object.keys(bucket).filter(k => k.startsWith("sb:") && bucket[k].pageId === id);
+    const boardKeys = Object.keys(bucket).filter(k => k.startsWith("sb:") && bucket[k]
+      .pageId === id);
     const boardIds = boardKeys.map(k => bucket[k].id);
-    const itemKeys = Object.keys(bucket).filter(k => k.startsWith("si:") && boardIds.includes(bucket[k].boardId));
+    const itemKeys = Object.keys(bucket).filter(k => k.startsWith("si:") && boardIds.includes(
+      bucket[k].boardId));
     await Promise.all(["sp:" + id, ...boardKeys, ...itemKeys].map(removeRecord));
   },
 
@@ -253,9 +335,12 @@ const Store = {
     const col = column ?? 0;
     const boards = await this.getBoards(pageId);
     const board = {
-      id: "board-" + uid(), pageId, name,
+      id: "board-" + uid(),
+      pageId,
+      name,
       order: boards.filter(b => b.column === col).length,
-      column: col, color: color || "#2F6F62",
+      column: col,
+      color: color || "#2F6F62",
       type: kind === "checklist" ? "checklist" : "links"
     };
     if (!(await writeRecordSafe("sb:" + board.id, board))) notifyOverflow();
@@ -264,12 +349,16 @@ const Store = {
 
   async renameBoard(id, name) {
     const board = await readRecord("sb:" + id);
-    if (board) await writeRecordSafe("sb:" + id, { ...board, name });
+    if (board) await writeRecordSafe("sb:" + id, {
+      ...board,
+      name
+    });
   },
 
   async deleteBoard(id) {
     const bucket = await getMergedBucket();
-    const itemKeys = Object.keys(bucket).filter(k => k.startsWith("si:") && bucket[k].boardId === id);
+    const itemKeys = Object.keys(bucket).filter(k => k.startsWith("si:") && bucket[k]
+      .boardId === id);
     await Promise.all(["sb:" + id, ...itemKeys].map(removeRecord));
   },
 
@@ -278,7 +367,10 @@ const Store = {
     const writes = [];
     orderedIds.forEach((id, order) => {
       const board = boards.find(b => b.id === id);
-      if (board && board.order !== order) writes.push(["sb:" + id, { ...board, order }]);
+      if (board && board.order !== order) writes.push(["sb:" + id, {
+        ...board,
+        order
+      }]);
     });
     if (writes.length) await writeManySafe(writes);
   },
@@ -290,19 +382,40 @@ const Store = {
       col.forEach((id, order) => {
         const board = boards.find(b => b.id === id);
         if (board && !(board.column === colIndex && board.order === order)) {
-          writes.push(["sb:" + id, { ...board, column: colIndex, order }]);
+          writes.push(["sb:" + id, {
+            ...board,
+            column: colIndex,
+            order
+          }]);
         }
       });
     });
     if (writes.length) await writeManySafe(writes);
   },
 
-  async addItem({ boardId, title, url, favicon, description, checked, remindAt, tags }) {
+  async addItem({
+    boardId,
+    title,
+    url,
+    favicon,
+    description,
+    checked,
+    remindAt,
+    tags
+  }) {
     const items = await this.getItems(boardId);
     const item = {
-      id: "item-" + uid(), boardId, title: title || url, url: url || "",
-      favicon: favicon || "", description: description || "", checked: !!checked,
-      remindAt: remindAt || null, tags: tags || [], order: items.length, createdAt: Date.now()
+      id: "item-" + uid(),
+      boardId,
+      title: title || url,
+      url: url || "",
+      favicon: favicon || "",
+      description: description || "",
+      checked: !!checked,
+      remindAt: remindAt || null,
+      tags: tags || [],
+      order: items.length,
+      createdAt: Date.now()
     };
     if (!(await writeRecordSafe("si:" + item.id, item))) notifyOverflow();
     return item;
@@ -310,21 +423,33 @@ const Store = {
 
   async updateItem(id, patch) {
     const item = await readRecord("si:" + id);
-    if (item) await writeRecordSafe("si:" + id, { ...item, ...patch });
+    if (item) await writeRecordSafe("si:" + id, {
+      ...item,
+      ...patch
+    });
   },
 
   async deleteItem(id) {
     const item = await readRecord("si:" + id);
     if (!item) return;
     await removeRecord("si:" + id);
-    const { lb_trash } = await chrome.storage.local.get("lb_trash");
-    const trash = [{ ...item, deletedAt: Date.now() }, ...(lb_trash || [])].slice(0, 20);
-    await chrome.storage.local.set({ lb_trash: trash });
+    const {
+      lb_trash
+    } = await chrome.storage.local.get("lb_trash");
+    const trash = [{
+      ...item,
+      deletedAt: Date.now()
+    }, ...(lb_trash || [])].slice(0, 20);
+    await chrome.storage.local.set({
+      lb_trash: trash
+    });
     notifyCloud();
   },
 
   async getTrash() {
-    const { lb_trash } = await chrome.storage.local.get("lb_trash");
+    const {
+      lb_trash
+    } = await chrome.storage.local.get("lb_trash");
     return lb_trash || [];
   },
 
@@ -336,16 +461,23 @@ const Store = {
     const board = boards.find(b => b.id === entry.boardId) || boards[0];
     if (!board) return;
     const items = await this.getItems(board.id);
-    const { deletedAt, ...rest } = entry;
+    const {
+      deletedAt,
+      ...rest
+    } = entry;
     rest.boardId = board.id;
     rest.order = items.length;
     await writeRecordSafe("si:" + rest.id, rest);
-    await chrome.storage.local.set({ lb_trash: trash.filter(t => t.id !== id) });
+    await chrome.storage.local.set({
+      lb_trash: trash.filter(t => t.id !== id)
+    });
     notifyCloud();
   },
 
   async clearTrash() {
-    await chrome.storage.local.set({ lb_trash: [] });
+    await chrome.storage.local.set({
+      lb_trash: []
+    });
     notifyCloud();
   },
 
@@ -356,11 +488,17 @@ const Store = {
     const siblings = Object.keys(bucket)
       .filter(k => k.startsWith("si:") && bucket[k].boardId === boardId && k !== "si:" + id)
       .map(k => bucket[k]).sort((a, b) => a.order - b.order);
-    siblings.splice(order, 0, { ...moving, boardId });
+    siblings.splice(order, 0, {
+      ...moving,
+      boardId
+    });
     const writes = siblings
       .map((item, idx) => [item, idx])
       .filter(([item, idx]) => item.order !== idx || item.boardId !== boardId)
-      .map(([item, idx]) => ["si:" + item.id, { ...item, order: idx }]);
+      .map(([item, idx]) => ["si:" + item.id, {
+        ...item,
+        order: idx
+      }]);
     if (writes.length) await writeManySafe(writes);
   },
 
@@ -369,31 +507,55 @@ const Store = {
       chrome.storage.sync.get("sync_settings"),
       chrome.storage.local.get("local_settings")
     ]);
-    return { ...SETTINGS_DEFAULTS, ...(sync.sync_settings || {}), ...(local.local_settings || {}) };
+    return {
+      ...SETTINGS_DEFAULTS,
+      ...(sync.sync_settings || {}),
+      ...(local.local_settings || {})
+    };
   },
 
   async setSettings(patch) {
-    const synced = {}, local = {};
+    const synced = {},
+      local = {};
     for (const key of Object.keys(patch)) {
       (LOCAL_SETTINGS_KEYS.includes(key) ? local : synced)[key] = patch[key];
     }
     const tasks = [];
     if (Object.keys(synced).length) {
       tasks.push((async () => {
-        const existing = (await chrome.storage.sync.get("sync_settings")).sync_settings || {};
+        const existing = (await chrome.storage.sync.get("sync_settings"))
+          .sync_settings || {};
         try {
-          await chrome.storage.sync.set({ sync_settings: { ...existing, ...synced } });
+          await chrome.storage.sync.set({
+            sync_settings: {
+              ...existing,
+              ...synced
+            }
+          });
         } catch (err) {
-          console.warn("[NexSion] Settings sync quota hit, saving locally instead:", err);
-          const existingLocal = (await chrome.storage.local.get("local_settings")).local_settings || {};
-          await chrome.storage.local.set({ local_settings: { ...existingLocal, ...synced } });
+          console.warn("[NexSion] Settings sync quota hit, saving locally instead:",
+            err);
+          const existingLocal = (await chrome.storage.local.get("local_settings"))
+            .local_settings || {};
+          await chrome.storage.local.set({
+            local_settings: {
+              ...existingLocal,
+              ...synced
+            }
+          });
         }
       })());
     }
     if (Object.keys(local).length) {
       tasks.push((async () => {
-        const existing = (await chrome.storage.local.get("local_settings")).local_settings || {};
-        await chrome.storage.local.set({ local_settings: { ...existing, ...local } });
+        const existing = (await chrome.storage.local.get("local_settings"))
+          .local_settings || {};
+        await chrome.storage.local.set({
+          local_settings: {
+            ...existing,
+            ...local
+          }
+        });
       })());
     }
     await Promise.all(tasks);
@@ -401,12 +563,16 @@ const Store = {
   },
 
   async getUser() {
-    const { lb_user } = await chrome.storage.local.get("lb_user");
+    const {
+      lb_user
+    } = await chrome.storage.local.get("lb_user");
     return lb_user || null;
   },
 
   async setUser(user) {
-    await chrome.storage.local.set({ lb_user: user });
+    await chrome.storage.local.set({
+      lb_user: user
+    });
   },
 
   async exportPageData(pageId) {
@@ -416,14 +582,20 @@ const Store = {
     const items = await this.getAllItems();
     return {
       exportedFrom: "NexSion",
-      page: { name: page.name },
+      page: {
+        name: page.name
+      },
       boards: boards.map(b => ({
         name: b.name,
         column: b.column ?? 0,
         order: b.order ?? 0,
         color: b.color || "",
         links: items.filter(i => i.boardId === b.id).sort((a, b2) => a.order - b2.order)
-          .map(i => ({ title: i.title, url: i.url, description: i.description || "" }))
+          .map(i => ({
+            title: i.title,
+            url: i.url,
+            description: i.description || ""
+          }))
       }))
     };
   },
@@ -434,7 +606,8 @@ const Store = {
     if (!importPage) importPage = await this.addPage("Imported");
     let columnOrder = (await this.getBoards(importPage.id)).length;
     const writes = [];
-    let boardsAdded = 0, itemsAdded = 0;
+    let boardsAdded = 0,
+      itemsAdded = 0;
     (function walk(nodes) {
       for (const node of nodes) {
         if (node.children) {
@@ -442,15 +615,25 @@ const Store = {
           if (links.length > 0) {
             const boardId = "board-" + uid();
             writes.push(["sb:" + boardId, {
-              id: boardId, pageId: importPage.id, name: node.title || "Untitled Folder",
-              order: columnOrder++, column: 0, color: "#4A5568"
+              id: boardId,
+              pageId: importPage.id,
+              name: node.title || "Untitled Folder",
+              order: columnOrder++,
+              column: 0,
+              color: "#4A5568"
             }]);
             boardsAdded++;
             links.forEach((link, idx) => {
               const itemId = "item-" + uid();
               writes.push(["si:" + itemId, {
-                id: itemId, boardId, title: link.title || link.url, url: link.url,
-                favicon: "", description: "", order: idx, createdAt: Date.now()
+                id: itemId,
+                boardId,
+                title: link.title || link.url,
+                url: link.url,
+                favicon: "",
+                description: "",
+                order: idx,
+                createdAt: Date.now()
               }]);
               itemsAdded++;
             });
@@ -459,17 +642,32 @@ const Store = {
         }
       }
     })(tree);
-    if (writes.length === 0) return { boardsAdded: 0, itemsAdded: 0, overflowCount: 0 };
+    if (writes.length === 0) return {
+      boardsAdded: 0,
+      itemsAdded: 0,
+      overflowCount: 0
+    };
     const overflowCount = await writeManySafe(writes);
-    return { boardsAdded, itemsAdded, overflowCount };
+    return {
+      boardsAdded,
+      itemsAdded,
+      overflowCount
+    };
   },
 
   async exportAllData() {
-    const [sync, local] = await Promise.all([chrome.storage.sync.get(null), chrome.storage.local.get(null)]);
+    const [sync, local] = await Promise.all([chrome.storage.sync.get(null), chrome.storage.local
+      .get(null)
+    ]);
     delete local.cs_session;
     delete local.cs_local_updated_at;
     delete local.lb_user;
-    return { exportedFrom: "NexSion", exportedAt: Date.now(), sync, local };
+    return {
+      exportedFrom: "NexSion",
+      exportedAt: Date.now(),
+      sync,
+      local
+    };
   },
 
   async importAllData(data) {
@@ -487,17 +685,23 @@ const Store = {
 
   async deleteAllLocalData() {
     const bucket = await getMergedBucket();
-    const keys = Object.keys(bucket).filter(k => k.startsWith("sp:") || k.startsWith("sb:") || k.startsWith("si:"));
+    const keys = Object.keys(bucket).filter(k => k.startsWith("sp:") || k.startsWith("sb:") || k
+      .startsWith("si:"));
     await Promise.all(keys.map(removeRecord));
-    await chrome.storage.local.set({ lb_trash: [] });
+    await chrome.storage.local.set({
+      lb_trash: []
+    });
     await (self.WallpaperDB?.clearBlob().catch(() => {}));
   },
 
   async clearBoardData() {
     const bucket = await getMergedBucket();
-    const keys = Object.keys(bucket).filter(k => k.startsWith("sp:") || k.startsWith("sb:") || k.startsWith("si:"));
+    const keys = Object.keys(bucket).filter(k => k.startsWith("sp:") || k.startsWith("sb:") || k
+      .startsWith("si:"));
     await Promise.all(keys.map(removeRecord));
-    await chrome.storage.local.set({ lb_trash: [] });
+    await chrome.storage.local.set({
+      lb_trash: []
+    });
   }
 };
 

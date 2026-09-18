@@ -41,8 +41,8 @@
         <span class="brand-name">NexSion</span>
       </div>
       <div class="pages-pills" id="pagesList"></div>
-      <button class="pill pill-add" id="addPageBtn">+</button>
-      <button class="pill pill-add" id="importPageBtn" title="Import a shared page">⇩</button>
+      <button class="pill pill-add" id="addPageBtn" aria-label="Add a new page">+</button>
+      <button class="pill pill-add" id="importPageBtn" title="Import a shared page" aria-label="Import a shared page">⇩</button>
     </header>
 
     <!-- Boards workspace -->
@@ -54,28 +54,28 @@
 
     <!-- Floating vertical dock, right side -->
     <div class="dock">
-      <button class="dock-btn" id="dockSearch" title="Search">
+      <button class="dock-btn" id="dockSearch" title="Search" aria-label="Search">
         <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
       </button>
-      <button class="dock-btn" id="dockImport" title="Import Chrome bookmarks">
+      <button class="dock-btn" id="dockImport" title="Import Chrome bookmarks" aria-label="Import Chrome bookmarks">
         <svg viewBox="0 0 24 24"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M4 20h16"/></svg>
       </button>
-      <button class="dock-btn" id="dockExtensions" title="Manage extensions">
+      <button class="dock-btn" id="dockExtensions" title="Manage extensions" aria-label="Manage extensions">
         <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
       </button>
-      <button class="dock-btn" id="dockSelectMode" title="Select multiple">
+      <button class="dock-btn" id="dockSelectMode" title="Select multiple" aria-label="Select multiple">
         <svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
       </button>
-      <button class="dock-btn" id="dockWidgets" title="Widgets">
+      <button class="dock-btn" id="dockWidgets" title="Widgets" aria-label="Widgets">
         <svg viewBox="0 0 24 24"><path d="M10 3h4a1 1 0 011 1v2.1a2.1 2.1 0 100 4.2V12a1 1 0 01-1 1h-3.1a2.1 2.1 0 10-4.2 0H4a1 1 0 01-1-1V9a1 1 0 011-1h2.1a2.1 2.1 0 100-4.2V3a1 1 0 011-1z" transform="translate(0 2)"/></svg>
       </button>
-      <button class="dock-btn" id="dockTrash" title="Recently deleted">
+      <button class="dock-btn" id="dockTrash" title="Recently deleted" aria-label="Recently deleted">
         <svg viewBox="0 0 24 24"><path d="M4 7h16"/><path d="M9 7V4h6v3"/><path d="M6 7l1 13h10l1-13"/></svg>
       </button>
-      <button class="dock-btn" id="dockPrivacy" title="Toggle privacy blur">
+      <button class="dock-btn" id="dockPrivacy" title="Toggle privacy blur" aria-label="Toggle privacy blur">
         <svg viewBox="0 0 24 24"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg>
       </button>
-      <button class="dock-btn dock-settings" id="dockSettings" title="Settings & account">
+      <button class="dock-btn dock-settings" id="dockSettings" title="Settings & account" aria-label="Settings & account">
         <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 00.3 1.9l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.7 1.7 0 00-1.9-.3 1.7 1.7 0 00-1 1.5V21a2 2 0 11-4 0v-.1a1.7 1.7 0 00-1-1.6 1.7 1.7 0 00-1.9.3l-.1.1a2 2 0 11-2.8-2.8l.1-.1a1.7 1.7 0 00.3-1.9 1.7 1.7 0 00-1.5-1H3a2 2 0 110-4h.1a1.7 1.7 0 001.6-1 1.7 1.7 0 00-.3-1.9l-.1-.1a2 2 0 112.8-2.8l.1.1a1.7 1.7 0 001.9.3H9a1.7 1.7 0 001-1.5V3a2 2 0 114 0v.1a1.7 1.7 0 001 1.5 1.7 1.7 0 001.9-.3l.1-.1a2 2 0 112.8 2.8l-.1.1a1.7 1.7 0 00-.3 1.9V9a1.7 1.7 0 001.5 1h.1a2 2 0 110 4h-.1a1.7 1.7 0 00-1.5 1z"/></svg>
       </button>
     </div>
@@ -101,7 +101,7 @@
             <input type="checkbox" id="exactMatch" />
             <span>Exact</span>
           </label>
-          <button class="modal-close" id="closeSearchModal">×</button>
+          <button class="modal-close" id="closeSearchModal" aria-label="Close dialog">×</button>
         </div>
         <div class="search-results" id="searchResults"></div>
       </div>
@@ -138,7 +138,7 @@
         <div class="settings-content">
           <div class="modal-head">
             <span id="settingsPanelTitle">General Settings</span>
-            <button class="modal-close" id="closeSettingsModal">×</button>
+            <button class="modal-close" id="closeSettingsModal" aria-label="Close dialog">×</button>
           </div>
 
           <div class="settings-panel" data-panel="general">
@@ -272,7 +272,7 @@
       <div class="modal trash-modal">
         <div class="modal-head">
           <span>Recently Deleted</span>
-          <button class="modal-close" id="closeTrashModal">×</button>
+          <button class="modal-close" id="closeTrashModal" aria-label="Close dialog">×</button>
         </div>
         <div class="trash-list" id="trashList"></div>
       </div>
@@ -283,7 +283,7 @@
       <div class="modal duplicates-modal">
         <div class="modal-head">
           <span>Duplicate Links</span>
-          <button class="modal-close" id="closeDuplicatesModal">×</button>
+          <button class="modal-close" id="closeDuplicatesModal" aria-label="Close dialog">×</button>
         </div>
         <div class="duplicates-list" id="duplicatesList"></div>
       </div>
@@ -293,7 +293,7 @@
       <div class="modal widgets-toggle-modal">
         <div class="modal-head">
           <span>Widgets</span>
-          <button class="modal-close" id="closeWidgetsModal">×</button>
+          <button class="modal-close" id="closeWidgetsModal" aria-label="Close dialog">×</button>
         </div>
         <label class="toggle-row">
           <span>🕐 Clock</span>
@@ -319,7 +319,7 @@
       <div class="modal add-page-modal">
         <div class="modal-head">
           <span>New Page</span>
-          <button class="modal-close" id="closeAddPageModal">×</button>
+          <button class="modal-close" id="closeAddPageModal" aria-label="Close dialog">×</button>
         </div>
         <label class="field-label">Page name *</label>
         <input id="newPageNameInput" class="field-input" type="text" placeholder="Untitled Page" autocomplete="off" />
@@ -335,7 +335,7 @@
       <div class="modal add-board-modal">
         <div class="modal-head">
           <span>New Board</span>
-          <button class="modal-close" id="closeAddBoardModal">×</button>
+          <button class="modal-close" id="closeAddBoardModal" aria-label="Close dialog">×</button>
         </div>
         <label class="field-label">Board type</label>
         <div class="add-board-type-row">
@@ -356,7 +356,7 @@
       <div class="modal bookmark-modal">
         <div class="modal-head">
           <span id="bookmarkModalTitle">Add Link</span>
-          <button class="modal-close" id="closeBookmarkModal">×</button>
+          <button class="modal-close" id="closeBookmarkModal" aria-label="Close dialog">×</button>
         </div>
 
         <label class="field-label">URL *</label>
@@ -377,7 +377,7 @@
         <label class="field-label">Remind me (optional)</label>
         <div class="reminder-row">
           <input id="bmRemindAt" class="field-input" type="datetime-local" />
-          <button class="btn btn-cancel hidden" id="bmClearReminder" title="Clear reminder">×</button>
+          <button class="btn btn-cancel hidden" id="bmClearReminder" title="Clear reminder" aria-label="Clear reminder">×</button>
         </div>
 
         <div class="modal-actions">
@@ -403,7 +403,7 @@
       <div class="modal style-modal">
         <div class="modal-head">
           <span>Style</span>
-          <button class="modal-close" id="closeStyleModal">×</button>
+          <button class="modal-close" id="closeStyleModal" aria-label="Close dialog">×</button>
         </div>
 
         <div class="theme-toggle-row">
@@ -479,7 +479,7 @@
       <div class="modal wallpaper-preview-box">
         <div class="modal-head">
           <span id="wallpaperPreviewName">Preview</span>
-          <button class="modal-close" id="closeWallpaperPreviewModal">×</button>
+          <button class="modal-close" id="closeWallpaperPreviewModal" aria-label="Close dialog">×</button>
         </div>
         <div class="wallpaper-preview-media" id="wallpaperPreviewMedia"></div>
         <div class="wallpaper-download-progress hidden" id="wallpaperDownloadProgress">
@@ -493,11 +493,11 @@
       </div>
     </div>
 
-    <button class="bg-shuffle-btn" id="styleBtn" title="Style & wallpaper">
+    <button class="bg-shuffle-btn" id="styleBtn" title="Style & wallpaper" aria-label="Style & wallpaper">
       <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="9.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
     </button>
 
-    <div class="toast" id="toast"></div>
+    <div class="toast" id="toast" role="status" aria-live="polite" aria-atomic="true"></div>
   </div>
 
   <template id="boardTemplate">
@@ -505,7 +505,7 @@
       <header class="board-head">
         <input class="board-title" type="text" />
         <div class="board-head-actions">
-          <button class="board-icon-btn board-add-item-btn" title="Add link">
+          <button class="board-icon-btn board-add-item-btn" title="Add link" aria-label="Add link">
             <svg viewBox="0 0 24 24"><path d="M10 13a5 5 0 007.07 0l2-2a5 5 0 00-7.07-7.07l-1 1"/><path d="M14 11a5 5 0 00-7.07 0l-2 2a5 5 0 007.07 7.07l1-1"/></svg>
           </button>
           <div class="board-menu-wrap">
@@ -527,8 +527,8 @@
       <span class="item-select-check"><input type="checkbox" class="item-select-checkbox" tabindex="-1" /></span>
       <img class="item-favicon" />
       <span class="item-title"></span>
-      <button class="item-edit" title="Edit">✎</button>
-      <button class="item-delete" title="Remove">×</button>
+      <button class="item-edit" title="Edit" aria-label="Edit">✎</button>
+      <button class="item-delete" title="Remove" aria-label="Remove">×</button>
     </a>
   </template>
 
@@ -536,12 +536,13 @@
   <div class="bulk-bar hidden" id="bulkBar">
     <span id="bulkCount">0 selected</span>
     <button class="btn btn-cancel" id="bulkMoveBtn">Move to…</button>
+    <button class="btn btn-cancel" id="bulkShareBtn">Share</button>
     <button class="btn btn-danger" id="bulkDeleteBtn">Delete</button>
     <button class="btn-link" id="bulkCancelBtn">Cancel</button>
   </div>
   <div class="modal-backdrop hidden" id="bulkMoveModal">
     <div class="modal" style="width:320px;">
-      <div class="modal-head"><span>Move to board</span><button class="modal-close" id="closeBulkMoveModal">×</button></div>
+      <div class="modal-head"><span>Move to board</span><button class="modal-close" id="closeBulkMoveModal" aria-label="Close dialog">×</button></div>
       <div id="bulkMoveBoardList" class="bulk-move-board-list"></div>
     </div>
   </div>
@@ -549,10 +550,17 @@
   <!-- Share Page overlay -->
   <div class="modal-backdrop hidden" id="shareCodeModal">
     <div class="modal" style="width:460px;">
-      <div class="modal-head"><span>Share "<span id="shareCodePageName"></span>"</span><button class="modal-close" id="closeShareCodeModal">×</button></div>
-      <p class="muted" style="margin:0 0 8px;">Anyone with NexSion installed can paste this code into "Import a shared page" to get a copy of this page's boards and links. It's compressed and checksummed, so a corrupted or partial paste is caught immediately instead of silently failing.</p>
+      <div class="modal-head"><span>Share "<span id="shareCodePageName"></span>"</span><button class="modal-close" id="closeShareCodeModal" aria-label="Close dialog">×</button></div>
+      <div id="shareCodeSummary" class="share-code-summary"></div>
+      <div class="share-link-row">
+        <input type="text" id="shareLinkBox" class="field-input" readonly placeholder="Click &quot;Get Shareable Link&quot; below…" style="font-size:12px;">
+        <button class="btn btn-primary" id="getShareLinkBtn">Get Shareable Link</button>
+      </div>
+      <p class="muted" style="margin:0 0 8px;">A link anyone can open in a browser — even before they've installed NexSion. Or use the raw code below if you'd rather not use a link.</p>
       <textarea id="shareCodeBox" class="field-input" readonly style="height:120px; resize:vertical; font-family:monospace; font-size:11px;"></textarea>
+      <p id="shareCodeSizeWarning" class="share-code-warning hidden"></p>
       <div class="modal-actions" style="justify-content:flex-start; flex-wrap:wrap; gap:8px;">
+        <button class="btn btn-primary hidden" id="shareCodeNativeBtn">Share…</button>
         <button class="btn btn-primary" id="copyShareCodeBtn">Copy Code</button>
         <button class="btn btn-cancel" id="shareCodeWhatsAppBtn">Share via WhatsApp</button>
         <button class="btn btn-cancel" id="shareCodeTelegramBtn">Share via Telegram</button>
@@ -563,7 +571,7 @@
   <!-- Import Page overlay -->
   <div class="modal-backdrop hidden" id="importCodeModal">
     <div class="modal" style="width:460px;">
-      <div class="modal-head"><span>Import a Shared Page</span><button class="modal-close" id="closeImportCodeModal">×</button></div>
+      <div class="modal-head"><span>Import a Shared Page</span><button class="modal-close" id="closeImportCodeModal" aria-label="Close dialog">×</button></div>
       <label class="field-label">Paste the code someone shared with you</label>
       <textarea id="importCodeInput" class="field-input" style="height:120px; resize:vertical; font-family:monospace; font-size:11px;" placeholder="Paste NexSion share code here…"></textarea>
       <div class="modal-actions">
@@ -576,7 +584,7 @@
   <!-- Invite Friends overlay -->
   <div class="modal-backdrop hidden" id="inviteModal">
     <div class="modal" style="width:420px;">
-      <div class="modal-head"><span>Invite Friends</span><button class="modal-close" id="closeInviteModal">×</button></div>
+      <div class="modal-head"><span>Invite Friends</span><button class="modal-close" id="closeInviteModal" aria-label="Close dialog">×</button></div>
       <p class="muted" style="margin:0 0 12px;">NexSion isn't on the Chrome Web Store yet, so share this quick install guide instead — it links straight to the latest release.</p>
       <div class="modal-actions" style="justify-content:flex-start; flex-wrap:wrap; gap:8px;">
         <button class="btn btn-primary" id="inviteWhatsAppBtn">Share via WhatsApp</button>
@@ -589,7 +597,7 @@
   <!-- Changelog overlay (auto-shown right after a self-update) -->
   <div class="modal-backdrop hidden" id="changelogModal">
     <div class="modal" style="width:460px;">
-      <div class="modal-head"><span id="changelogTitle">🎉 What's New</span><button class="modal-close" id="closeChangelogModal">×</button></div>
+      <div class="modal-head"><span id="changelogTitle">🎉 What's New</span><button class="modal-close" id="closeChangelogModal" aria-label="Close dialog">×</button></div>
       <div id="changelogNotes" class="update-notes" style="margin-bottom:14px;"></div>
       <div class="modal-actions">
         <button class="btn btn-primary" id="changelogGotItBtn">Got it</button>
@@ -600,7 +608,7 @@
   <!-- Onboarding tour overlay -->
   <div class="modal-backdrop hidden" id="onboardingModal">
     <div class="modal" style="width:420px;">
-      <div class="modal-head"><span id="onboardingStepTitle"></span><button class="modal-close" id="closeOnboardingModal">×</button></div>
+      <div class="modal-head"><span id="onboardingStepTitle"></span><button class="modal-close" id="closeOnboardingModal" aria-label="Close dialog">×</button></div>
       <p class="muted" id="onboardingStepText" style="min-height:60px;"></p>
       <div class="modal-actions" style="justify-content:space-between;">
         <span class="muted" id="onboardingStepCounter" style="font-size:12px;"></span>
@@ -612,6 +620,7 @@
     </div>
   </div>
 
+  <script src="js/config.js"></script>
   <script src="js/cloudSync.js"></script>
   <script src="js/wallpaperDb.js"></script>
   <script src="js/storage.js"></script>

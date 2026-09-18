@@ -1297,3 +1297,101 @@ html, body {
 .duplicate-row-board { font-size: 11px; color: var(--muted); flex-shrink: 0; }
 .duplicate-row .btn { flex-shrink: 0; padding: 5px 10px; font-size: 12px; }
 
+
+/* ---------- Toast undo action (UX fix #14) ---------- */
+.toast-undo {
+  margin-left: 12px;
+  padding: 3px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.12);
+  color: inherit;
+  font: inherit;
+  font-size: 0.85em;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+.toast-undo:hover {
+  background: rgba(255, 255, 255, 0.24);
+  border-color: rgba(255, 255, 255, 0.55);
+}
+.toast-undo:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+}
+
+/* ---------- Skeleton loading state (perceived-speed fix #12) ---------- */
+.skeleton-board {
+  width: 260px;
+  flex: 0 0 auto;
+  border-radius: 14px;
+  padding: 14px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+.skeleton-line {
+  height: 12px;
+  border-radius: 6px;
+  margin-bottom: 10px;
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.07) 25%,
+    rgba(255, 255, 255, 0.16) 37%,
+    rgba(255, 255, 255, 0.07) 63%
+  );
+  background-size: 400% 100%;
+  animation: skeleton-shimmer 1.4s ease infinite;
+}
+.skeleton-line.title { width: 55%; height: 16px; margin-bottom: 16px; }
+.skeleton-line.short { width: 70%; }
+
+@keyframes skeleton-shimmer {
+  0%   { background-position: 100% 50%; }
+  100% { background-position: 0 50%; }
+}
+
+/* Accessibility: respect reduced-motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  .skeleton-line { animation: none; }
+  * { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+}
+
+/* ---------- Share modal improvements ---------- */
+.share-code-summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  margin-bottom: 10px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  font-size: 0.9em;
+  font-weight: 600;
+}
+.share-code-summary .share-code-icon { font-size: 1.1em; }
+.share-code-warning {
+  margin: 0 0 8px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: rgba(255, 176, 32, 0.12);
+  border: 1px solid rgba(255, 176, 32, 0.35);
+  color: #ffcf7a;
+  font-size: 0.85em;
+  line-height: 1.4;
+}
+
+.share-link-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.share-link-row .field-input {
+  flex: 1;
+  min-width: 0;
+}
+.share-link-row .btn {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}

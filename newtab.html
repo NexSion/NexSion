@@ -616,11 +616,13 @@
     </div>
   </div>
 
-  <!-- Changelog overlay (auto-shown right after a self-update) -->
+  <!-- Release Notes overlay — used both for the on-demand "What's New?" browser
+       and the automatic post-update popup, so notes always render as a proper
+       styled list instead of a cramped inline box. -->
   <div class="modal-backdrop hidden" id="changelogModal">
-    <div class="modal" style="width:460px;">
+    <div class="modal" style="width:480px;">
       <div class="modal-head"><span id="changelogTitle">🎉 What's New</span><button class="modal-close" id="closeChangelogModal" aria-label="Close dialog">×</button></div>
-      <div id="changelogNotes" class="update-notes" style="margin-bottom:14px;"></div>
+      <div id="changelogNotes" class="update-notes changelog-notes-body" style="margin-bottom:14px;"></div>
       <div class="modal-actions">
         <button class="btn btn-primary" id="changelogGotItBtn">Got it</button>
       </div>

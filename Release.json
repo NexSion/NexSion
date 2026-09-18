@@ -1,4 +1,4 @@
 {
-  "version": "3.3.0",
-  "notes": "- New: background auto-update — NexSion now checks for new releases on its own, even if you never open a new tab\n- New: a system notification pops up the moment an update is out; click it to jump straight to Settings \u2192 Updates with the Install button ready — one click and you're done\n- New: a small blinking dot appears on the Settings button whenever an update is waiting, so you notice it without digging through menus\n- New: Auto-Update toggle in Settings \u2192 Updates — turn it on (after linking your update folder) and NexSion installs new versions completely on its own, showing a small progress toast in the corner of the screen while it updates\n- Fixed: installing an update could grab whichever browser tab happened to be active and swap/close it, even if it wasn't a NexSion tab — it now only ever touches NexSion's own tabs"
+  "version": "3.3.1",
+  "notes": "- Improved: every scrollbar across the extension (settings modal, release notes, boards, search, etc.) now matches the app's theme instead of showing the default OS scrollbar\n- Improved: release notes now open in a proper Notes-style view with tagged, easy-to-scan bullets instead of a cramped inline box of raw dashed lines"
 }

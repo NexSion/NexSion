@@ -812,6 +812,47 @@ html[data-theme="light"] .update-progress-spinner {
 @keyframes nexsion-spin { to { transform: rotate(360deg); } }
 .update-result-box { margin-top: 10px; padding: 12px 14px; border-radius: 10px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); font-size: 13px; }
 .update-notes { max-height: 220px; overflow-y: auto; color: var(--muted); font-size: 12.5px; line-height: 1.6; }
+.changelog-notes-body { max-height: 340px; padding-right: 4px; }
+
+/* Styled release-note list — replaces plain "- New: …" dashed lines with
+   tagged, legible items (used inside the Release Notes modal and the
+   inline "update available" preview). */
+.release-note-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 11px; }
+.release-note-item { display: flex; align-items: flex-start; gap: 9px; }
+.release-note-text { flex: 1; color: var(--ink); font-size: 13px; line-height: 1.55; }
+.release-note-tag {
+  flex-shrink: 0;
+  margin-top: 1px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  padding: 2.5px 7px;
+  border-radius: 6px;
+  white-space: nowrap;
+}
+.release-note-tag.tag-new { background: rgba(59,158,255,0.16); color: #6cb4ff; }
+.release-note-tag.tag-fixed { background: rgba(224,101,79,0.18); color: #ef8b76; }
+.release-note-tag.tag-improved { background: rgba(31,157,110,0.2); color: #4cd48a; }
+.release-note-tag.tag-changed { background: rgba(255,255,255,0.1); color: var(--muted); }
+html[data-theme="light"] .release-note-tag.tag-new { background: rgba(31,157,110,0.12); color: #1f9d6e; }
+html[data-theme="light"] .release-note-tag.tag-fixed { background: rgba(201,74,52,0.12); color: #c94a34; }
+html[data-theme="light"] .release-note-tag.tag-improved { background: rgba(31,157,110,0.14); color: #178a5f; }
+html[data-theme="light"] .release-note-tag.tag-changed { background: rgba(10,20,16,0.08); color: var(--muted); }
+
+/* Small pill showing the version number next to a modal title. */
+.version-pill {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 9px;
+  border-radius: 20px;
+  background: rgba(255,255,255,0.09);
+  color: var(--muted);
+  margin-left: 6px;
+  vertical-align: middle;
+}
+html[data-theme="light"] .version-pill { background: rgba(10,20,16,0.07); }
 .settings-danger-zone {
   border: 1px solid rgba(224,101,79,0.3);
   border-radius: 12px;
@@ -970,11 +1011,44 @@ html[data-theme="light"] .update-progress-spinner {
 }
 .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
-/* Scrollbars */
-.workspace::-webkit-scrollbar, .board-items::-webkit-scrollbar, .search-results::-webkit-scrollbar { width: 7px; }
-.workspace::-webkit-scrollbar-thumb, .board-items::-webkit-scrollbar-thumb, .search-results::-webkit-scrollbar-thumb {
-  background: rgba(255,255,255,0.12);
-  border-radius: 4px;
+/* ---------------- Scrollbars ----------------
+ * One consistent, theme-matched scrollbar everywhere instead of the default
+ * OS scrollbar (which looked out of place against the app's glassy UI).
+ * Firefox gets scrollbar-width/scrollbar-color; Chromium (what this
+ * extension actually runs in) gets the full ::-webkit-scrollbar treatment.
+ */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.22) transparent;
+}
+*::-webkit-scrollbar {
+  width: 9px;
+  height: 9px;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+*::-webkit-scrollbar-thumb {
+  background-color: rgba(255, 255, 255, 0.16);
+  background-clip: padding-box;
+  border: 2px solid transparent;
+  border-radius: 20px;
+  transition: background-color 0.15s ease;
+}
+*::-webkit-scrollbar-thumb:hover {
+  background-color: var(--accent);
+}
+*::-webkit-scrollbar-corner {
+  background: transparent;
+}
+html[data-theme="light"] * {
+  scrollbar-color: rgba(10, 20, 16, 0.18) transparent;
+}
+html[data-theme="light"] *::-webkit-scrollbar-thumb {
+  background-color: rgba(10, 20, 16, 0.14);
+}
+html[data-theme="light"] *::-webkit-scrollbar-thumb:hover {
+  background-color: var(--accent);
 }
 
 /* ---------------- Style / Wallpaper modal ---------------- */

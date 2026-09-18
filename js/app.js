@@ -1512,6 +1512,57 @@ function showUpdateProgressToast(stage) {
   updateProgressToast.classList.remove("hidden");
 }
 
+/**
+ * Turns raw "- New: …" / "- Fixed: …" release-note lines into a properly
+ * styled list (tag badge + text) instead of dumping plain dashed text into
+ * a box. Lines with no recognized tag still render fine, just without a badge.
+ */
+const RELEASE_NOTE_TAGS = {
+  "new:": {
+    label: "New",
+    cls: "tag-new"
+  },
+  "fixed:": {
+    label: "Fixed",
+    cls: "tag-fixed"
+  },
+  "improved:": {
+    label: "Improved",
+    cls: "tag-improved"
+  },
+  "changed:": {
+    label: "Changed",
+    cls: "tag-changed"
+  }
+};
+function renderReleaseNotes(rawNotes) {
+  const lines = (rawNotes || "").split("\n").map(l => l.trim()).filter(Boolean);
+  if (!lines.length) return '<p class="muted">No notes for this release.</p>';
+  const items = lines.map(line => {
+    let text = line.replace(/^[-*•]\s*/, "");
+    let tag = null;
+    const lower = text.toLowerCase();
+    for (const key of Object.keys(RELEASE_NOTE_TAGS)) {
+      if (lower.startsWith(key)) {
+        tag = RELEASE_NOTE_TAGS[key];
+        text = text.slice(key.length).trim();
+        break;
+      }
+    }
+    const badge = tag ? `<span class="release-note-tag ${tag.cls}">${tag.label}</span>` : "";
+    return `<li class="release-note-item">${badge}<span class="release-note-text">${escapeHtml(text)}</span></li>`;
+  }).join("");
+  return `<ul class="release-note-list">${items}</ul>`;
+}
+
+/** Opens the dedicated Release Notes overlay instead of cramming notes into a small inline box. */
+function openReleaseNotesModal(title, version, rawNotes) {
+  document.getElementById("changelogTitle").innerHTML =
+    `${title}${version?` <span class="version-pill">v${version}</span>`:""}`;
+  document.getElementById("changelogNotes").innerHTML = renderReleaseNotes(rawNotes);
+  openModal("changelogModal");
+}
+
 // Seed the badge immediately from whatever background.js last found, instead of
 // waiting for this page's own delayed check — so it's accurate the instant a new
 // tab opens, even if NexSion wasn't open when the update actually became available.
@@ -1573,19 +1624,13 @@ linkUpdateFolderBtn.addEventListener("click", async () => {
 });
 whatsNewBtn.addEventListener("click", async () => {
   whatsNewBtn.disabled = !0;
-  updateResultBox.classList.remove("hidden");
-  updateResultBox.innerHTML = '<p class="muted">Loading release notes…</p>';
   try {
     const data = await NexSionUpdater.fetchReleaseNotes();
-    const notesHtml = (data.notes || "No notes for this release.").split("\n").map(line =>
-        `<div>${line.replace(/[<>&]/g,c=>({"<":"&lt;",">":"&gt;","&":"&amp;"}[c]))}</div>`)
-      .join("");
-    updateResultBox.innerHTML =
-      `<h4 style="margin:0 0 6px;">What's New — v${data.version||"?"}</h4><div class="update-notes">${notesHtml}</div>`;
+    openReleaseNotesModal("📝 What's New", data.version || chrome.runtime.getManifest().version,
+      data.notes);
   } catch (e) {
     console.warn("[NexSion] Fetch release notes failed:", e);
-    updateResultBox.innerHTML =
-      `<p class="muted">Couldn't load release notes — ${e.message||"check your connection"}.</p>`;
+    toast("Couldn't load release notes — " + (e.message || "check your connection"));
   } finally {
     whatsNewBtn.disabled = !1;
   }
@@ -1605,12 +1650,10 @@ async function runUpdateCheck(showBusyState) {
       updateResultBox.innerHTML = `<p class="muted">You're up to date — v${result.current}.</p>`;
       return result;
     }
-    const notesHtml = (result.notes || "").split("\n").filter(Boolean).map(line =>
-      `<div>${line.replace(/[<>&]/g,c=>({"<":"&lt;",">":"&gt;","&":"&amp;"}[c]))}</div>`).join(
-      "");
+    const notesHtml = renderReleaseNotes(result.notes);
     updateResultBox.innerHTML = `
       <h4 style="margin:0 0 4px;">Update available: v${result.current} → v${result.latest}</h4>
-      ${notesHtml?`<div class="update-notes" style="margin-bottom:10px;">${notesHtml}</div>`:""}
+      <div class="update-notes" style="margin-bottom:10px;">${notesHtml}</div>
       <div class="settings-action-row">
         <button class="btn btn-primary" id="installUpdateBtn">Install</button>
         <button class="btn btn-cancel" id="laterUpdateBtn">Later</button>
@@ -2555,12 +2598,9 @@ async function maybeShowChangelog() {
   } = await chrome.storage.local.get("nexsion_pending_changelog");
   if (!e) return;
   try {
-    const e = await NexSionUpdater.fetchReleaseNotes(),
-      t = (e.notes || "No notes for this release.").split("\n").filter(Boolean).map(e =>
-        `<div>${e.replace(/[<>&]/g,e=>({"<":"&lt;",">":"&gt;","&":"&amp;"}[e]))}</div>`).join("");
-    document.getElementById("changelogTitle").textContent =
-      `🎉 Updated to v${e.version||chrome.runtime.getManifest().version}`, document
-      .getElementById("changelogNotes").innerHTML = t, openModal("changelogModal")
+    const data = await NexSionUpdater.fetchReleaseNotes();
+    openReleaseNotesModal("🎉 Updated to", data.version || chrome.runtime.getManifest().version,
+      data.notes);
   } catch (e) {
     console.warn("[NexSion] Couldn't load post-update changelog:", e)
   } finally {

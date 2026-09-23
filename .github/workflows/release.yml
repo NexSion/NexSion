@@ -1,0 +1,98 @@
+name: Build & Release Extension
+
+# Fires only when manifest.json actually changes on main — i.e. whenever you
+# bump the "version" field as part of shipping a new release. A plain
+# code-fix push that doesn't touch the version number won't trigger a
+# release, which matches how Chrome extension versioning has to work anyway
+# (every release needs a unique version number).
+on:
+  push:
+    branches: [main]
+    paths:
+      - "manifest.json"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Read version from manifest.json
+        id: v
+        run: |
+          VERSION=$(node -p "require('./manifest.json').version")
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Skip if this version was already released
+        id: check
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release view "v${{ steps.v.outputs.version }}" >/dev/null 2>&1; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      # Update.json and Release.json (read by js/updater.js's self-updater)
+      # are kept in lockstep with manifest.json automatically, so you only
+      # ever have to edit Release.json's "notes" field by hand — everything
+      # else (version numbers, the zip download URL) is derived.
+      - name: Sync Update.json / Release.json to the new version
+        if: steps.check.outputs.exists == 'false'
+        run: |
+          node -e "
+            const fs = require('fs');
+            const version = require('./manifest.json').version;
+            const repo = process.env.GITHUB_REPOSITORY;
+
+            const releaseNotes = JSON.parse(fs.readFileSync('Release.json', 'utf8'));
+            releaseNotes.version = version;
+            fs.writeFileSync('Release.json', JSON.stringify(releaseNotes, null, 2) + '\n');
+
+            const update = JSON.parse(fs.readFileSync('Update.json', 'utf8'));
+            update.latestVersion = version;
+            update.zipUrl = \`https://github.com/\${repo}/releases/download/v\${version}/NexSion_v\${version}.zip\`;
+            update.notes = releaseNotes.notes;
+            fs.writeFileSync('Update.json', JSON.stringify(update, null, 2) + '\n');
+          "
+
+      - name: Commit synced release metadata
+        if: steps.check.outputs.exists == 'false'
+        run: |
+          git config user.name "nexsion-release-bot"
+          git config user.email "actions@github.com"
+          git add Release.json Update.json
+          git diff --cached --quiet || git commit -m "chore: sync release metadata to v${{ steps.v.outputs.version }}"
+          git push
+
+      - name: Zip the extension
+        if: steps.check.outputs.exists == 'false'
+        run: |
+          mkdir -p dist
+          zip -r "dist/NexSion_v${{ steps.v.outputs.version }}.zip" . \
+            -x ".git/*" ".github/*" "dist/*" "*.md" "screenshots/*" "node_modules/*"
+
+      - name: Prepare release notes
+        if: steps.check.outputs.exists == 'false'
+        run: node -e "require('fs').writeFileSync('RELEASE_BODY.md', require('./Release.json').notes + '\n')"
+
+      - name: Create GitHub Release
+        if: steps.check.outputs.exists == 'false'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.v.outputs.version }}
+          name: NexSion v${{ steps.v.outputs.version }}
+          body_path: RELEASE_BODY.md
+          files: dist/NexSion_v${{ steps.v.outputs.version }}.zip
+        env:
+          GITHUB_TOKEN: ${{ github.token }}

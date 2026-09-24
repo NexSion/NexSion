@@ -71,7 +71,7 @@ chrome.contextMenus.onClicked.addListener(async (e, t) => {
     favicon: t?.favIconUrl || ""
   }), notify("Saved to NexSion", `${o} → ${a.name}`)) : notify("Couldn't save",
     "That board no longer exists — reopen the menu to refresh the list.")
-}), importScripts("js/storage.js", "js/updater.js");
+}), importScripts("js/storage.js", "js/cloudSync.js", "js/updater.js");
 
 /* ---------------- Background auto-update ----------------
  * Runs independently of whether any NexSion tab is open, so every user
@@ -323,6 +323,65 @@ chrome.runtime.onInstalled.addListener(() => {
     })
   }), chrome.notifications.clear(e)
 });
+
+/* ---------------- Website <-> extension session bridge ----------------
+ * Only reachable from origins listed in manifest.json's
+ * "externally_connectable" (the NexSion website). Lets the website:
+ *   - ask whether this browser already has a signed-in NexSion session
+ *     ("nexsion-get-auth-state"), so the site can mirror that state
+ *     instantly instead of asking the person to sign in twice;
+ *   - push a session it just created via its own Google sign-in
+ *     ("nexsion-adopt-session"), so signing in on the website also signs
+ *     the extension in, automatically, with no extra click here;
+ *   - tell the extension the website signed out ("nexsion-sign-out").
+ * All three respond asynchronously, hence `return !0` to keep the message
+ * channel open — see MDN's chrome.runtime.onMessage docs on returning true.
+ * ----------------------------------------------------------------------- */
+chrome.runtime.onMessageExternal.addListener((message, sender, sendResponse) => {
+  if (!message || !message.type) return;
+
+  if (message.type === "nexsion-get-auth-state") {
+    Store.getUser().then(user => {
+      sendResponse({
+        signedIn: !!user,
+        user: user || null
+      });
+    }).catch(() => sendResponse({
+      signedIn: !1,
+      user: null
+    }));
+    return !0;
+  }
+
+  if (message.type === "nexsion-adopt-session") {
+    CloudSync.adoptExternalSession(message.session, message.profile).then(() => {
+      sendResponse({
+        ok: !0
+      });
+      broadcast({
+        type: "boards-changed"
+      });
+    }).catch(e => {
+      console.warn("[NexSion] Couldn't adopt session pushed from website:", e);
+      sendResponse({
+        ok: !1,
+        error: e.message
+      });
+    });
+    return !0;
+  }
+
+  if (message.type === "nexsion-sign-out") {
+    CloudSync.signOutExternal().then(() => sendResponse({
+      ok: !0
+    })).catch(e => sendResponse({
+      ok: !1,
+      error: e.message
+    }));
+    return !0;
+  }
+});
+
 async function handlePendingPostUpdateSwap() {
   const {
     nexsion_pending_tab_swap_ids: ids

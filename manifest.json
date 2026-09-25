@@ -44,7 +44,7 @@
   ],
   "externally_connectable": {
     "matches": [
-      "https://YOUR-VERCEL-DOMAIN.vercel.app/*",
+      "https://nexsion.vercel.app/*",
       "http://localhost:3000/*"
     ]
   },
